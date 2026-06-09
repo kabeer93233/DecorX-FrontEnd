@@ -6,9 +6,12 @@ export const PublicRoute = ({
 }: any) => {
 
   const token =
-    localStorage.getItem(
-      "access_token",
-    );
+  localStorage.getItem(
+    "access_token",
+  ) ||
+  sessionStorage.getItem(
+    "access_token",
+  );
 
   // IF USER LOGGED IN
 

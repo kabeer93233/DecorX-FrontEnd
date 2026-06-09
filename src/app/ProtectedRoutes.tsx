@@ -3,7 +3,7 @@ import {  Navigate } from 'react-router-dom';
 
 const ProtectedRoutes = (props: any) => {
 
-  const token =
+const token =
   localStorage.getItem(
     "access_token",
   ) ||

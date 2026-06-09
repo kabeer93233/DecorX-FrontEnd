@@ -22,7 +22,10 @@ export const EmailVerifiedRoute = ({
   const isVerified =
     localStorage.getItem(
       'isEmailVerified',
-    ) === 'true';
+    ) ||
+    sessionStorage.getItem(
+      'isEmailVerified',
+    )
 
   useEffect(() => {
 

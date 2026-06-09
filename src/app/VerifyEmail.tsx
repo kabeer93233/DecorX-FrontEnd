@@ -51,7 +51,14 @@ export const VerifyEmail =
       );
 
       setTimeout(() => {
-        localStorage.setItem(
+        const storage =
+          localStorage.getItem(
+            "access_token"
+          )
+            ? localStorage
+            : sessionStorage;
+
+        storage.setItem(
           'isEmailVerified',
           'true',
         );
