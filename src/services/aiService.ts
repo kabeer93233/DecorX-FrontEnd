@@ -1,60 +1,76 @@
-import { SavedDesign } from '../types';
+import custom_axios from '../axios/axios';
+import { DesignItem } from '../types/editor';
 
-// localStorage keys
-const SAVED_DESIGNS_KEY = 'decorx_saved_designs';
+export interface PlacementResult {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+  reason: string;
+  confidence: number;
+  zoneId: string;
+}
 
-// Get all saved designs
-export const getSavedDesigns = (): SavedDesign[] => {
-  try {
-    const designs = localStorage.getItem(SAVED_DESIGNS_KEY);
-    return designs ? JSON.parse(designs) : [];
-  } catch (error) {
-    console.error('Error loading saved designs:', error);
-    return [];
-  }
-};
+export interface RecommendResult {
+  suggestedCategories: string[];
+  reason: string;
+}
 
-// Save a new design
-export const saveDesign = (design: Omit<SavedDesign, 'id' | 'createdAt'>): SavedDesign => {
-  try {
-    const designs = getSavedDesigns();
-    const newDesign: SavedDesign = {
-      ...design,
-      id: `design_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-    };
-    designs.unshift(newDesign);
-    localStorage.setItem(SAVED_DESIGNS_KEY, JSON.stringify(designs));
-    return newDesign;
-  } catch (error) {
-    console.error('Error saving design:', error);
-    throw error;
-  }
-};
-
-// Delete a saved design
-export const deleteDesign = (id: string): void => {
-  try {
-    const designs = getSavedDesigns();
-    const filtered = designs.filter(d => d.id !== id);
-    localStorage.setItem(SAVED_DESIGNS_KEY, JSON.stringify(filtered));
-  } catch (error) {
-    console.error('Error deleting design:', error);
-    throw error;
-  }
-};
-
-// Simulate AI generation with a delay
-export const generateAIPreview = async (
-  roomImage: string,
-  furnitureImage: string,
-  delay: number = 3000
-): Promise<string> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // In a real implementation, this would call an AI service
-      // For now, we'll return the room image (client will overlay furniture)
-      resolve(roomImage);
-    }, delay);
+export async function recommendProducts(
+  roomType: string,
+  alreadyPlacedCategories: string[] = [],
+): Promise<RecommendResult> {
+  const res = await custom_axios.post('/ai-preview/recommend-products', {
+    roomType,
+    alreadyPlacedCategories,
   });
-};
+  return res.data.data;
+}
+
+export async function suggestPlacement(
+  roomId: string,
+  productCategory: string,
+  productWidth: number,
+  productDepth: number,
+  existingItems: DesignItem[] = [],
+): Promise<PlacementResult> {
+  const res = await custom_axios.post('/ai-preview/suggest-placement', {
+    roomId,
+    productCategory,
+    productWidth,
+    productDepth,
+    existingItems: existingItems.map((it) => ({
+      category: it.category,
+      position: it.position,
+      // Pass actual floor footprint so backend collision is accurate
+      width: it.scale[0],
+      depth: it.scale[2],
+    })),
+  });
+  return res.data.data;
+}
+
+export async function saveDesign(payload: {
+  roomId: string;
+  name?: string;
+  items: DesignItem[];
+  cameraState?: object | null;
+  screenshotUrl?: string | null;
+  designId?: string;
+}): Promise<{ id: string }> {
+  const res = await custom_axios.post('/ai-preview/save-design', payload);
+  return res.data.data;
+}
+
+export async function getMyDesigns(): Promise<any[]> {
+  const res = await custom_axios.get('/ai-preview/my-designs');
+  return res.data.data;
+}
+
+export async function getDesign(id: string): Promise<any> {
+  const res = await custom_axios.get(`/ai-preview/designs/${id}`);
+  return res.data.data;
+}
+
+export async function deleteDesign(id: string): Promise<void> {
+  await custom_axios.delete(`/ai-preview/designs/${id}`);
+}

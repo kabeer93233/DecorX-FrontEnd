@@ -12,6 +12,7 @@ import { Contact } from '../pages/Contact';
 import { Login } from '../pages/Login';
 import { Signup } from '../pages/Signup';
 import { AIPreview } from '../pages/AIPreview';
+import RoomEditor from '../pages/RoomEditor';
 import { Checkout } from '../pages/Checkout';
 import { Profile } from '../pages/Profile';
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
@@ -153,6 +154,17 @@ const App = () => {
                   <Layout>
                     <AIPreview />
                   </Layout>
+                </EmailVerifiedRoute>
+              </ProtectedRoutes>
+            }
+          />
+
+          <Route
+            path="/room-editor/:roomId"
+            element={
+              <ProtectedRoutes>
+                <EmailVerifiedRoute>
+                  <RoomEditor />
                 </EmailVerifiedRoute>
               </ProtectedRoutes>
             }

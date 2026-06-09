@@ -1,37 +1,63 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Palette, Trash2, Calendar } from 'lucide-react';
-import { getSavedDesigns, deleteDesign } from '../../services/aiService';
+import { getMyDesigns, deleteDesign } from '../../services/aiService';
+import { ROOMS } from '../../data/rooms';
 import { toast } from 'sonner';
 
-export const SavedDesigns: React.FC = () => {
-  const [designs, setDesigns] = React.useState(getSavedDesigns());
+interface DesignSummary {
+  id: string;
+  name: string;
+  roomId: string;
+  screenshotUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this design?')) {
-      deleteDesign(id);
-      setDesigns(getSavedDesigns());
-      toast.success('Design deleted successfully');
+export const SavedDesigns: React.FC = () => {
+  const [designs, setDesigns] = useState<DesignSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getMyDesigns()
+      .then(setDesigns)
+      .catch(() => toast.error('Failed to load designs'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this design?')) return;
+    try {
+      await deleteDesign(id);
+      setDesigns((prev) => prev.filter((d) => d.id !== id));
+      toast.success('Design deleted');
+    } catch {
+      toast.error('Failed to delete design');
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric',
     });
-  };
+
+  const getRoomName = (roomId: string) =>
+    ROOMS.find((r) => r.id === roomId)?.name ?? roomId;
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-3xl p-12 border border-stone-200 flex items-center justify-center">
+        <span className="inline-block w-8 h-8 border-4 border-orange-300 border-t-orange-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (designs.length === 0) {
     return (
       <div className="bg-white rounded-3xl p-12 border border-stone-200 text-center">
         <Palette className="h-16 w-16 text-stone-300 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-stone-900 mb-2">No Saved Designs</h3>
-        <p className="text-stone-600 mb-6">
-          Create your first AI room design and save it here.
-        </p>
+        <p className="text-stone-600 mb-6">Create your first 3D room design and save it here.</p>
         <Link
           to="/ai-preview"
           className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white font-semibold rounded-full hover:bg-orange-600 transition-colors"
@@ -59,64 +85,44 @@ export const SavedDesigns: React.FC = () => {
             key={design.id}
             className="bg-white rounded-2xl overflow-hidden border border-stone-200 hover:shadow-xl transition-all group"
           >
-            {/* Design Image */}
+            {/* Screenshot preview */}
             <div className="relative aspect-video overflow-hidden bg-stone-100">
-              <img
-                src={design.resultImage}
-                alt="Saved design"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute top-3 right-3">
-                <button
-                  onClick={() => handleDelete(design.id)}
-                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
-                  title="Delete design"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              {design.screenshotUrl ? (
+                <img
+                  src={design.screenshotUrl}
+                  alt={design.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-stone-300">
+                  <Palette className="w-12 h-12" />
+                </div>
+              )}
+              <button
+                onClick={() => handleDelete(design.id)}
+                className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                title="Delete design"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
 
-            {/* Design Info */}
+            {/* Info */}
             <div className="p-4 space-y-3">
               <div>
-                <h3 className="font-bold text-stone-900 truncate">{design.productName}</h3>
-                <p className="text-sm text-stone-500 flex items-center gap-2 mt-1">
+                <h3 className="font-bold text-stone-900 truncate">{design.name}</h3>
+                <p className="text-xs text-stone-500 mt-0.5">{getRoomName(design.roomId)}</p>
+                <p className="text-xs text-stone-400 flex items-center gap-1 mt-1">
                   <Calendar className="h-3 w-3" />
-                  {formatDate(design.createdAt)}
+                  {formatDate(design.updatedAt)}
                 </p>
               </div>
 
-              {/* Before/After Preview */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="text-xs text-stone-500 mb-1">Before</p>
-                  <div className="aspect-video rounded-lg overflow-hidden bg-stone-100">
-                    <img
-                      src={design.roomImage}
-                      alt="Before"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-stone-500 mb-1">After</p>
-                  <div className="aspect-video rounded-lg overflow-hidden bg-stone-100 border-2 border-orange-200">
-                    <img
-                      src={design.resultImage}
-                      alt="After"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
               <Link
-                to={`/product/${design.productId}`}
+                to={`/room-editor/${design.roomId}?designId=${design.id}`}
                 className="block w-full py-2 text-center bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors text-sm"
               >
-                View Product
+                Open in Editor
               </Link>
             </div>
           </div>
