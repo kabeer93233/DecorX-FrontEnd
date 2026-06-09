@@ -20,9 +20,12 @@ custom_axios.interceptors.request.use(
   (config) => {
 
     const token =
-      localStorage.getItem(
-        "access_token",
-      );
+    localStorage.getItem(
+      "access_token",
+    ) ||
+    sessionStorage.getItem(
+      "access_token",
+    );
 
     if (token) {
 
@@ -74,8 +77,18 @@ custom_axios.interceptors.response.use(
         const refreshToken =
           localStorage.getItem(
             "refresh_token"
+          ) ||
+          sessionStorage.getItem(
+            "refresh_token"
           );
 
+          const storage =
+          localStorage.getItem(
+            "refresh_token"
+          )
+            ? localStorage
+            : sessionStorage;
+            
         const response =
           await axios.post(
 
@@ -92,12 +105,12 @@ custom_axios.interceptors.response.use(
         const newRefreshToken =
           response.data.refresh_token;
 
-        localStorage.setItem(
+        storage.setItem(
           "access_token",
           newAccessToken,
         );
 
-        localStorage.setItem(
+        storage.setItem(
           "refresh_token",
           newRefreshToken,
         );

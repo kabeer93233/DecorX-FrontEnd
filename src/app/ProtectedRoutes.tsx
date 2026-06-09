@@ -4,9 +4,12 @@ import {  Navigate } from 'react-router-dom';
 const ProtectedRoutes = (props: any) => {
 
   const token =
-    localStorage.getItem(
-      "access_token",
-    );
+  localStorage.getItem(
+    "access_token",
+  ) ||
+  sessionStorage.getItem(
+    "access_token",
+  );
 
   if (!token) {
 
