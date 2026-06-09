@@ -128,7 +128,8 @@ custom_axios.interceptors.response.use(
 
         isRefreshing = false;
 
-        localStorage.removeItem("access_token");
+        localStorage.clear();
+        sessionStorage.clear();
 
         window.location.href =
           "/login";
