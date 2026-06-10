@@ -80,6 +80,8 @@ export default function FurnitureItem({ item }: Props) {
       }
       pointerDownPt.current = null;
     },
+    // Block click bubbling to the floor mesh (which would call selectItem(null))
+    onClick: (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); },
     onContextMenu: (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); },
   };
 

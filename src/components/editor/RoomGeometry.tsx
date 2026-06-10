@@ -1,7 +1,7 @@
 import React from 'react';
 import { RoomTemplate } from '../../data/rooms';
 
-interface Props { room: RoomTemplate }
+interface Props { room: RoomTemplate; hideWalls?: boolean }
 
 // Deterministic floor plank pattern
 function FloorPlanks({ width, depth }: { width: number; depth: number }) {
@@ -56,62 +56,8 @@ function AreaRug({ width, depth }: { width: number; depth: number }) {
   );
 }
 
-// Window frame on back wall
-function WindowOnWall({ wallH, wallW }: { wallH: number; wallW: number }) {
-  const winW = 1.2;
-  const winH = 1.4;
-  const sillY = wallH * 0.38;
-  const frameDepth = 0.035;
-  const FRAME_C  = '#F0EDE8';
-  const GLASS_C  = '#B8D4E8';
 
-  return (
-    <group position={[wallW * 0.22, sillY + winH / 2, -0.01]}>
-      {/* Glass pane */}
-      <mesh>
-        <planeGeometry args={[winW, winH]} />
-        <meshLambertMaterial color={GLASS_C} transparent opacity={0.35} />
-      </mesh>
-      {/* Frame top */}
-      <mesh position={[0, winH / 2 + frameDepth / 2, 0.01]}>
-        <boxGeometry args={[winW + frameDepth * 2, frameDepth, 0.04]} />
-        <meshLambertMaterial color={FRAME_C} />
-      </mesh>
-      {/* Frame bottom */}
-      <mesh position={[0, -winH / 2 - frameDepth / 2, 0.01]}>
-        <boxGeometry args={[winW + frameDepth * 2, frameDepth, 0.04]} />
-        <meshLambertMaterial color={FRAME_C} />
-      </mesh>
-      {/* Frame left */}
-      <mesh position={[-winW / 2 - frameDepth / 2, 0, 0.01]}>
-        <boxGeometry args={[frameDepth, winH, 0.04]} />
-        <meshLambertMaterial color={FRAME_C} />
-      </mesh>
-      {/* Frame right */}
-      <mesh position={[winW / 2 + frameDepth / 2, 0, 0.01]}>
-        <boxGeometry args={[frameDepth, winH, 0.04]} />
-        <meshLambertMaterial color={FRAME_C} />
-      </mesh>
-      {/* Horizontal mid-bar */}
-      <mesh position={[0, 0, 0.015]}>
-        <boxGeometry args={[winW, frameDepth * 0.6, 0.04]} />
-        <meshLambertMaterial color={FRAME_C} />
-      </mesh>
-      {/* Vertical mid-bar */}
-      <mesh position={[0, 0, 0.015]}>
-        <boxGeometry args={[frameDepth * 0.6, winH, 0.04]} />
-        <meshLambertMaterial color={FRAME_C} />
-      </mesh>
-      {/* Window sill */}
-      <mesh position={[0, -winH / 2 - 0.03, 0.06]}>
-        <boxGeometry args={[winW + 0.18, 0.04, 0.14]} />
-        <meshLambertMaterial color={FRAME_C} />
-      </mesh>
-    </group>
-  );
-}
-
-export default function RoomGeometry({ room }: Props) {
+export default function RoomGeometry({ room, hideWalls = false }: Props) {
   const { width, depth, height, wallColor, floorColor } = room;
   const hw = width  / 2;
   const hd = depth  / 2;
@@ -139,38 +85,41 @@ export default function RoomGeometry({ room }: Props) {
       <FloorPlanks width={width} depth={depth} />
       <AreaRug width={width} depth={depth} />
 
-      {/* ── CEILING ───────────────────────────────────────────────── */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, height, 0]}>
-        <planeGeometry args={[width + 0.2, depth + 0.2]} />
-        <meshLambertMaterial color={CEIL_C} />
-      </mesh>
+      {!hideWalls && (
+        <>
+          {/* ── CEILING ───────────────────────────────────────────────── */}
+          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, height, 0]}>
+            <planeGeometry args={[width + 0.2, depth + 0.2]} />
+            <meshLambertMaterial color={CEIL_C} />
+          </mesh>
 
-      {/* ── BACK WALL (accent wall — slightly deeper) ──────────────── */}
-      <mesh position={[0, height / 2, -hd]} receiveShadow>
-        <planeGeometry args={[width, height]} />
-        <meshLambertMaterial color={WALL_C} />
-      </mesh>
-      <WindowOnWall wallH={height} wallW={width} />
+          {/* ── BACK WALL (accent wall — slightly deeper) ──────────────── */}
+          <mesh position={[0, height / 2, -hd]} receiveShadow>
+            <planeGeometry args={[width, height]} />
+            <meshLambertMaterial color={WALL_C} />
+          </mesh>
 
-      {/* ── LEFT WALL ─────────────────────────────────────────────── */}
-      <mesh rotation={[0, Math.PI / 2, 0]} position={[-hw, height / 2, 0]} receiveShadow>
-        <planeGeometry args={[depth, height]} />
-        <meshLambertMaterial color={SIDE_WALL_C} />
-      </mesh>
+          {/* ── LEFT WALL ─────────────────────────────────────────────── */}
+          <mesh rotation={[0, Math.PI / 2, 0]} position={[-hw, height / 2, 0]} receiveShadow>
+            <planeGeometry args={[depth, height]} />
+            <meshLambertMaterial color={SIDE_WALL_C} />
+          </mesh>
 
-      {/* ── RIGHT WALL ────────────────────────────────────────────── */}
-      <mesh rotation={[0, -Math.PI / 2, 0]} position={[hw, height / 2, 0]} receiveShadow>
-        <planeGeometry args={[depth, height]} />
-        <meshLambertMaterial color={SIDE_WALL_C} />
-      </mesh>
+          {/* ── RIGHT WALL ────────────────────────────────────────────── */}
+          <mesh rotation={[0, -Math.PI / 2, 0]} position={[hw, height / 2, 0]} receiveShadow>
+            <planeGeometry args={[depth, height]} />
+            <meshLambertMaterial color={SIDE_WALL_C} />
+          </mesh>
 
-      {/* ── CORNER COLUMNS ────────────────────────────────────────── */}
-      {[[-hw,-hd],[hw,-hd],[-hw,hd],[hw,hd]].map(([x,z],i) => (
-        <mesh key={i} position={[x, height / 2, z]}>
-          <boxGeometry args={[CORNER_W, height, CORNER_W]} />
-          <meshLambertMaterial color={CORNER_C} />
-        </mesh>
-      ))}
+          {/* ── CORNER COLUMNS ────────────────────────────────────────── */}
+          {[[-hw,-hd],[hw,-hd],[-hw,hd],[hw,hd]].map(([x,z],i) => (
+            <mesh key={i} position={[x, height / 2, z]}>
+              <boxGeometry args={[CORNER_W, height, CORNER_W]} />
+              <meshLambertMaterial color={CORNER_C} />
+            </mesh>
+          ))}
+        </>
+      )}
 
       {/* ── BASEBOARDS ────────────────────────────────────────────── */}
       {/* Back */}
@@ -194,53 +143,57 @@ export default function RoomGeometry({ room }: Props) {
         <meshLambertMaterial color={TRIM_C} />
       </mesh>
 
-      {/* ── CROWN MOULDING ────────────────────────────────────────── */}
-      {/* Back */}
-      <mesh position={[0, height - CROWN_H / 2, -hd + TRIM_W / 2]}>
-        <boxGeometry args={[width + CORNER_W * 2, CROWN_H, TRIM_W]} />
-        <meshLambertMaterial color={CROWN_C} />
-      </mesh>
-      {/* Left */}
-      <mesh position={[-hw + TRIM_W / 2, height - CROWN_H / 2, 0]}>
-        <boxGeometry args={[TRIM_W, CROWN_H, depth]} />
-        <meshLambertMaterial color={CROWN_C} />
-      </mesh>
-      {/* Right */}
-      <mesh position={[hw - TRIM_W / 2, height - CROWN_H / 2, 0]}>
-        <boxGeometry args={[TRIM_W, CROWN_H, depth]} />
-        <meshLambertMaterial color={CROWN_C} />
-      </mesh>
-      {/* Front */}
-      <mesh position={[0, height - CROWN_H / 2, hd - TRIM_W / 2]}>
-        <boxGeometry args={[width + CORNER_W * 2, CROWN_H, TRIM_W]} />
-        <meshLambertMaterial color={CROWN_C} />
-      </mesh>
+      {!hideWalls && (
+        <>
+          {/* ── CROWN MOULDING ────────────────────────────────────────── */}
+          {/* Back */}
+          <mesh position={[0, height - CROWN_H / 2, -hd + TRIM_W / 2]}>
+            <boxGeometry args={[width + CORNER_W * 2, CROWN_H, TRIM_W]} />
+            <meshLambertMaterial color={CROWN_C} />
+          </mesh>
+          {/* Left */}
+          <mesh position={[-hw + TRIM_W / 2, height - CROWN_H / 2, 0]}>
+            <boxGeometry args={[TRIM_W, CROWN_H, depth]} />
+            <meshLambertMaterial color={CROWN_C} />
+          </mesh>
+          {/* Right */}
+          <mesh position={[hw - TRIM_W / 2, height - CROWN_H / 2, 0]}>
+            <boxGeometry args={[TRIM_W, CROWN_H, depth]} />
+            <meshLambertMaterial color={CROWN_C} />
+          </mesh>
+          {/* Front */}
+          <mesh position={[0, height - CROWN_H / 2, hd - TRIM_W / 2]}>
+            <boxGeometry args={[width + CORNER_W * 2, CROWN_H, TRIM_W]} />
+            <meshLambertMaterial color={CROWN_C} />
+          </mesh>
 
-      {/* ── CEILING CENTRE LIGHT ROSE ─────────────────────────────── */}
-      <mesh position={[0, height - 0.005, 0]}>
-        <cylinderGeometry args={[0.22, 0.22, 0.012, 20]} />
-        <meshLambertMaterial color="#F0EDE6" />
-      </mesh>
-      {/* Rose ring detail */}
-      <mesh position={[0, height - 0.005, 0]}>
-        <cylinderGeometry args={[0.28, 0.28, 0.006, 20]} />
-        <meshLambertMaterial color="#E8E4DC" />
-      </mesh>
-      {/* Pendant cord */}
-      <mesh position={[0, height - 0.34, 0]}>
-        <cylinderGeometry args={[0.007, 0.007, 0.56, 6]} />
-        <meshLambertMaterial color="#5A5048" />
-      </mesh>
-      {/* Pendant shade */}
-      <mesh position={[0, height - 0.7, 0]}>
-        <cylinderGeometry args={[0.14, 0.09, 0.22, 12]} />
-        <meshLambertMaterial color="#C8A870" />
-      </mesh>
-      {/* Shade inner glow ring */}
-      <mesh position={[0, height - 0.825, 0]}>
-        <cylinderGeometry args={[0.088, 0.088, 0.01, 12]} />
-        <meshLambertMaterial color="#FFECC0" />
-      </mesh>
+          {/* ── CEILING CENTRE LIGHT ROSE ─────────────────────────────── */}
+          <mesh position={[0, height - 0.005, 0]}>
+            <cylinderGeometry args={[0.22, 0.22, 0.012, 20]} />
+            <meshLambertMaterial color="#F0EDE6" />
+          </mesh>
+          {/* Rose ring detail */}
+          <mesh position={[0, height - 0.005, 0]}>
+            <cylinderGeometry args={[0.28, 0.28, 0.006, 20]} />
+            <meshLambertMaterial color="#E8E4DC" />
+          </mesh>
+          {/* Pendant cord */}
+          <mesh position={[0, height - 0.34, 0]}>
+            <cylinderGeometry args={[0.007, 0.007, 0.56, 6]} />
+            <meshLambertMaterial color="#5A5048" />
+          </mesh>
+          {/* Pendant shade */}
+          <mesh position={[0, height - 0.7, 0]}>
+            <cylinderGeometry args={[0.14, 0.09, 0.22, 12]} />
+            <meshLambertMaterial color="#C8A870" />
+          </mesh>
+          {/* Shade inner glow ring */}
+          <mesh position={[0, height - 0.825, 0]}>
+            <cylinderGeometry args={[0.088, 0.088, 0.01, 12]} />
+            <meshLambertMaterial color="#FFECC0" />
+          </mesh>
+        </>
+      )}
     </group>
   );
 }

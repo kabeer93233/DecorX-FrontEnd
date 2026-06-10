@@ -178,3 +178,20 @@ export const ROOMS: RoomTemplate[] = [
     ],
   },
 ];
+
+export const CUSTOM_ROOM: RoomTemplate = {
+  id: 'custom',
+  name: 'My Room',
+  type: 'custom',
+  description: 'Your own room loaded from a photo.',
+  previewImage: '',
+  width: 6, depth: 5, height: 3,
+  wallColor: '#EDE3D5',
+  floorColor: '#C4A478',
+  placementZones: [],
+  cameraPresets: [
+    { name: 'Default', position: [5, 4, 5],    target: [0, 0.5, 0] },
+    { name: 'Top',     position: [0, 9, 0.01],  target: [0, 0, 0] },
+    { name: 'Front',   position: [0, 1.5, 7],   target: [0, 1, 0] },
+  ],
+};

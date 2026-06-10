@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ROOMS } from '../data/rooms';
+import { ROOMS, CUSTOM_ROOM } from '../data/rooms';
 import { useEditorStore } from '../store/editorStore';
 import SceneCanvas, { SceneCanvasRef } from '../components/editor/SceneCanvas';
 import ProductSidebar from '../components/editor/ProductSidebar';
@@ -12,7 +12,10 @@ export default function RoomEditor() {
   const { roomId } = useParams<{ roomId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const designId = searchParams.get('designId');
+  const designId     = searchParams.get('designId');
+  const photoParam      = searchParams.get('photo') ?? undefined;
+  const wallColorParam  = searchParams.get('wallColor');
+  const floorColorParam = searchParams.get('floorColor');
 
   const canvasRef = useRef<SceneCanvasRef>(null);
   const [saving, setSaving] = useState(false);
@@ -21,7 +24,14 @@ export default function RoomEditor() {
     useEditorStore();
 
   useEffect(() => {
-    const found = ROOMS.find((r) => r.id === roomId);
+    const baseRoom = roomId === 'custom'
+      ? {
+          ...CUSTOM_ROOM,
+          wallColor:  wallColorParam  ? `#${wallColorParam}`  : CUSTOM_ROOM.wallColor,
+          floorColor: floorColorParam ? `#${floorColorParam}` : CUSTOM_ROOM.floorColor,
+        }
+      : ROOMS.find((r) => r.id === roomId);
+    const found = baseRoom;
     if (!found) { navigate('/ai-preview', { replace: true }); return; }
     setRoom(found);
     clearItems();
@@ -84,7 +94,7 @@ export default function RoomEditor() {
 
       {/* ── 3D CANVAS AREA ── */}
       <div className="relative flex-1 h-full" style={{ background: '#EDE8E1' }}>
-        <SceneCanvas ref={canvasRef} room={room} />
+        <SceneCanvas ref={canvasRef} room={room} photoBackground={photoParam} />
 
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3 pointer-events-none z-10">
