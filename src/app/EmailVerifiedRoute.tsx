@@ -24,7 +24,7 @@ export const EmailVerifiedRoute = ({
 }: Props) => {
 
   const isVerified =
-    getIsVerified() === 'true';
+    getIsVerified();
 
   useEffect(() => {
 
