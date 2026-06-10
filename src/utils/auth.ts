@@ -40,19 +40,14 @@ export const getRole = () => {
   );
 };
 
-export const getIsVerified = () => {
+export const getIsVerified = (): boolean => {
 
   return (
-
-    localStorage.getItem(
-      "isEmailVerified"
-    ) === "true" ||
-
-    sessionStorage.getItem(
-      "isEmailVerified"
-    ) === "true"
+    localStorage.getItem("isEmailVerified") === "true" ||
+    sessionStorage.getItem("isEmailVerified") === "true"
   );
 };
+
 
 export const getStorage = () => {
 
