@@ -9,6 +9,10 @@ import {
 import { toast }
 from 'sonner';
 
+import {
+  getIsVerified,
+} from '../utils/auth';
+
 interface Props {
 
   children:
@@ -20,12 +24,7 @@ export const EmailVerifiedRoute = ({
 }: Props) => {
 
   const isVerified =
-    localStorage.getItem(
-      'isEmailVerified',
-    ) ||
-    sessionStorage.getItem(
-      'isEmailVerified',
-    )
+    getIsVerified() === 'true';
 
   useEffect(() => {
 

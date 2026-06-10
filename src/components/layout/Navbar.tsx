@@ -8,6 +8,10 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import {
+  getAccessToken,
+  getRole,
+} from '../../utils/auth';
 
 import { useShop } from '../../context/ShopContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -22,25 +26,24 @@ export const Navbar = () => {
     useState(false);
 
   const navigate = useNavigate();
-
   const token =
-    localStorage.getItem(
-      "access_token"
-    );
+    getAccessToken();
 
   const role =
-    localStorage.getItem(
-      'role',
-    );
+    getRole();
 
   const logout = async () => {
 
     try {
 
       const refreshToken =
-        localStorage.getItem(
-          "refresh_token",
-        );
+      localStorage.getItem(
+        "refresh_token",
+      ) ||
+
+      sessionStorage.getItem(
+        "refresh_token",
+      );
 
       await custom_axios.post(
         "/auth/logout",
@@ -49,13 +52,8 @@ export const Navbar = () => {
         },
       );
 
-      localStorage.removeItem(
-        "access_token",
-      );
-
-      localStorage.removeItem(
-        "refresh_token",
-      );
+      localStorage.clear();
+      sessionStorage.clear();
 
       navigate("/login");
 

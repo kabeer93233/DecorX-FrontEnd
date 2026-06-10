@@ -1,19 +1,19 @@
 import React from "react";
-import {Navigate} from "react-router-dom";
+
+import {
+  Navigate,
+} from "react-router-dom";
+
+import {
+  getAccessToken,
+} from "../utils/auth";
 
 export const PublicRoute = ({
   children,
 }: any) => {
 
   const token =
-  localStorage.getItem(
-    "access_token",
-  ) ||
-  sessionStorage.getItem(
-    "access_token",
-  );
-
-  // IF USER LOGGED IN
+    getAccessToken();
 
   if (token) {
 
@@ -24,8 +24,6 @@ export const PublicRoute = ({
       />
     );
   }
-
-  // OTHERWISE SHOW PAGE
 
   return children;
 };

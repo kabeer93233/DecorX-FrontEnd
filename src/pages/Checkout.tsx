@@ -7,6 +7,9 @@ import { OrderSummary } from '../components/checkout/OrderSummary';
 import { useShop } from '../context/ShopContext';
 import { saveOrder } from '../services/orderService';
 import { toast } from 'sonner';
+import {
+  getIsVerified,
+} from '../utils/auth';
 
 export const Checkout: React.FC = () => {
   const { cart, clearCart, cartTotal } = useShop();
@@ -102,10 +105,9 @@ export const Checkout: React.FC = () => {
       </div>
     );
   }
-  const isVerified =
-  localStorage.getItem(
-    'isEmailVerified',
-  ) === 'true';
+
+const isVerified =
+  getIsVerified();
 
   return (
     <div className="min-h-screen bg-[#FFF8F0] py-12">

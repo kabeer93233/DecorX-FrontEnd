@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import {
+  getIsVerified,
+} from '../utils/auth';
 import { RoomUploader } from '../components/ai/RoomUploader';
 import { FurnitureSelector } from '../components/ai/FurnitureSelector';
 import { PreviewCanvas } from '../components/ai/PreviewCanvas';
@@ -101,9 +104,7 @@ export const AIPreview: React.FC = () => {
 
   const canGenerate = roomImage && selectedProduct && !isGenerating;
   const isVerified =
-  localStorage.getItem(
-    'isEmailVerified',
-  ) === 'true';
+    getIsVerified();
   return (
     <div className="min-h-screen bg-[#FFF8F0] py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,15 +1,19 @@
 import React from 'react';
-import {  Navigate } from 'react-router-dom';
 
-const ProtectedRoutes = (props: any) => {
+import {
+  Navigate,
+} from 'react-router-dom';
 
-const token =
-  localStorage.getItem(
-    "access_token",
-  ) ||
-  sessionStorage.getItem(
-    "access_token",
-  );
+import {
+  getAccessToken,
+} from '../utils/auth';
+
+const ProtectedRoutes = (
+  props: any,
+) => {
+
+  const token =
+    getAccessToken();
 
   if (!token) {
 

@@ -6,7 +6,9 @@ import {
   Trash2,
   ArrowRight,
 } from 'lucide-react';
-
+import {
+  getIsVerified,
+} from '../utils/auth';
 import { useShop }
 from '../context/ShopContext';
 
@@ -44,9 +46,7 @@ export const Cart = () => {
     );
   }
   const isVerified =
-  localStorage.getItem(
-    'isEmailVerified',
-  ) === 'true';
+    getIsVerified();
 
   return (
 

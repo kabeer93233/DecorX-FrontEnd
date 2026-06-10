@@ -7,6 +7,10 @@ import React,{
 } from 'react';
 
 import {
+  getAccessToken,
+} from '../utils/auth';
+
+import {
   Product,
   CartItem,
 } from '../types';
@@ -79,10 +83,8 @@ export const ShopProvider=({
 
     try{
 
-      const token=
-      localStorage.getItem(
-        'access_token',
-      );
+      const token =
+      getAccessToken();
 
       if(!token){
 
@@ -117,10 +119,8 @@ export const ShopProvider=({
 
     try{
 
-      const token=
-      localStorage.getItem(
-        'access_token',
-      );
+      const token =
+      getAccessToken();
 
       if(!token){
 
