@@ -51,7 +51,9 @@ export const Login = () => {
 
         storage.setItem(
           "isEmailVerified",
-          response.data.user.isEmailVerified,
+          String(
+            response.data.user.isEmailVerified
+          ),
         );
 
         storage.setItem(
@@ -64,7 +66,7 @@ export const Login = () => {
         );
         await fetchCart();
         await fetchWishlist();
-        navigate('/profile');
+        window.location.href = "/";
 
       } catch (error: any) {
 
