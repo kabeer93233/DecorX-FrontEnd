@@ -1,5 +1,18 @@
-import React, { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import {
+  getIsVerified,
+} from '../utils/auth';
+import { RoomUploader } from '../components/ai/RoomUploader';
+import { FurnitureSelector } from '../components/ai/FurnitureSelector';
+import { PreviewCanvas } from '../components/ai/PreviewCanvas';
+import { PositionControls } from '../components/ai/PositionControls';
+import { GenerateButton } from '../components/ai/GenerateButton';
+import { ResultPreview } from '../components/ai/ResultPreview';
+import { BeforeAfterSlider } from '../components/ai/BeforeAfterSlider';
+import { products } from '../data/products';
+import { generateAIPreview, saveDesign } from '../services/aiService';
 import { toast } from 'sonner';
 import { ROOMS } from '../data/rooms';
 import { uploadRoomImage } from '../services/aiService';
@@ -31,6 +44,19 @@ export const AIPreview: React.FC = () => {
     }
   };
 
+  const handleDownload = () => {
+    if (!resultImage) return;
+
+    const link = document.createElement('a');
+    link.download = `decorx-design-${Date.now()}.png`;
+    link.href = resultImage;
+    link.click();
+    toast.success('Design downloaded!');
+  };
+
+  const canGenerate = roomImage && selectedProduct && !isGenerating;
+  const isVerified =
+    getIsVerified();
   return (
     <div className="min-h-screen bg-[#FFF8F0] py-10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

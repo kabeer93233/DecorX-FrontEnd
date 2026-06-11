@@ -55,6 +55,11 @@ export const VerifyEmail =
           'isEmailVerified',
           'true',
         );
+
+        sessionStorage.setItem(
+          'isEmailVerified',
+          'true',
+        );
         navigate(
           '/login',
         );
