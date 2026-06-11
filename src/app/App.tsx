@@ -13,7 +13,6 @@ import { Login } from '../pages/Login';
 import { Signup } from '../pages/Signup';
 import { AIPreview } from '../pages/AIPreview';
 import { AIDesigner } from '../pages/AIDesigner';
-import RoomEditor from '../pages/RoomEditor';
 import { Checkout } from '../pages/Checkout';
 import { Profile } from '../pages/Profile';
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
@@ -168,17 +167,6 @@ const App = () => {
                   <Layout>
                     <AIDesigner />
                   </Layout>
-                </EmailVerifiedRoute>
-              </ProtectedRoutes>
-            }
-          />
-
-          <Route
-            path="/room-editor/:roomId"
-            element={
-              <ProtectedRoutes>
-                <EmailVerifiedRoute>
-                  <RoomEditor />
                 </EmailVerifiedRoute>
               </ProtectedRoutes>
             }

@@ -1,82 +1,6 @@
 import custom_axios from '../axios/axios';
-import { DesignItem } from '../types/editor';
 import { RoomAnalysis, PlacementSuggestion2d, AiDesignRecord } from '../types/ai';
 import { uploadToCloudinary, uploadDataUrlToCloudinary } from '../lib/cloudinaryUpload';
-
-// ── 3D EDITOR ────────────────────────────────────────────────────────────────
-
-export interface PlacementResult {
-  position: [number, number, number];
-  rotation: [number, number, number];
-  scale: [number, number, number];
-  reason: string;
-  confidence: number;
-  zoneId: string;
-}
-
-export interface RecommendResult {
-  suggestedCategories: string[];
-  reason: string;
-}
-
-export async function recommendProducts(
-  roomType: string,
-  alreadyPlacedCategories: string[] = [],
-): Promise<RecommendResult> {
-  const res = await custom_axios.post('/ai-preview/recommend-products', {
-    roomType,
-    alreadyPlacedCategories,
-  });
-  return res.data.data;
-}
-
-export async function suggestPlacement(
-  roomId: string,
-  productCategory: string,
-  productWidth: number,
-  productDepth: number,
-  existingItems: DesignItem[] = [],
-): Promise<PlacementResult> {
-  const res = await custom_axios.post('/ai-preview/suggest-placement', {
-    roomId,
-    productCategory,
-    productWidth,
-    productDepth,
-    existingItems: existingItems.map((it) => ({
-      category: it.category,
-      position: it.position,
-      width: it.scale[0],
-      depth: it.scale[2],
-    })),
-  });
-  return res.data.data;
-}
-
-export async function saveDesign(payload: {
-  roomId: string;
-  name?: string;
-  items: DesignItem[];
-  cameraState?: object | null;
-  screenshotUrl?: string | null;
-  designId?: string;
-}): Promise<{ id: string }> {
-  const res = await custom_axios.post('/ai-preview/save-design', payload);
-  return res.data.data;
-}
-
-export async function getMyDesigns(): Promise<any[]> {
-  const res = await custom_axios.get('/ai-preview/my-designs');
-  return res.data.data;
-}
-
-export async function getDesign(id: string): Promise<any> {
-  const res = await custom_axios.get(`/ai-preview/designs/${id}`);
-  return res.data.data;
-}
-
-export async function deleteDesign(id: string): Promise<void> {
-  await custom_axios.delete(`/ai-preview/designs/${id}`);
-}
 
 // ── 2D AI DESIGNER ────────────────────────────────────────────────────────────
 
@@ -94,12 +18,14 @@ export async function suggestPlacement2d(
   canvasWidth: number,
   canvasHeight: number,
   roomImageUrl?: string,
+  existingCount?: number,
 ): Promise<PlacementSuggestion2d> {
   const res = await custom_axios.post('/ai-preview/suggest-placement-2d', {
     productCategory,
     canvasWidth,
     canvasHeight,
-    ...(roomImageUrl ? { roomImageUrl } : {}),
+    ...(roomImageUrl    ? { roomImageUrl }    : {}),
+    ...(existingCount != null ? { existingCount } : {}),
   });
   return res.data.data;
 }
@@ -168,28 +94,47 @@ export async function removeBackground(
   imageUrl: string,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  // Step 1: Ask Gemini for the product bounding box to pre-crop and focus the removal
-  let sourceUrl = imageUrl;
+  // ── Try Clipdrop via backend first (server-side, best quality) ──
   try {
+    if (onProgress) onProgress(10);
     const res = await custom_axios.post('/ai-preview/process-product-image', { imageUrl });
-    const box = res.data?.data;
-    if (box && typeof box.x1 === 'number') {
-      sourceUrl = await geminiCropImage(imageUrl, box);
+    const cleanDataUrl: string | undefined = res.data?.data?.cleanImageDataUrl;
+    if (cleanDataUrl) {
+      if (onProgress) onProgress(90);
+      const cropped = await autoCropTransparent(cleanDataUrl);
+      if (onProgress) onProgress(100);
+      return cropped;
     }
-  } catch { /* skip pre-crop, use original */ }
+  } catch { /* fall through to WASM */ }
 
-  // Step 2: WASM background removal
+  // ── WASM fallback — medium model (confirmed working, better quality than small) ──
+  // Fetch as Blob in main thread to avoid CORS issues inside the WASM worker
+  let source: Blob | string = imageUrl;
+  try {
+    const fetchRes = await fetch(imageUrl, { mode: 'cors' });
+    if (fetchRes.ok) source = await fetchRes.blob();
+  } catch { /* use URL */ }
+
+  if (onProgress) onProgress(15);
+
   const { removeBackground: removeBg } = await import('@imgly/background-removal');
-  const blob = await removeBg(sourceUrl, {
-    progress: (_key: string, current: number, total: number) => {
-      if (onProgress && total > 0) onProgress(Math.round((current / total) * 100));
-    },
-    model: 'small',
-  });
 
-  // Step 3: Auto-crop to tightest non-transparent bounds
-  const objectUrl = URL.createObjectURL(blob);
-  return autoCropTransparent(objectUrl);
+  // Race WASM against a timeout so it never hangs silently
+  const wasmPromise = removeBg(source, {
+    progress: (_key: string, current: number, total: number) => {
+      if (onProgress && total > 0) onProgress(15 + Math.round((current / total) * 80));
+    },
+    model: 'medium',
+  });
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('BG removal timed out')), 120_000),
+  );
+
+  const blob = await Promise.race([wasmPromise, timeout]);
+  const objectUrl = URL.createObjectURL(blob as Blob);
+  const result = await autoCropTransparent(objectUrl);
+  if (onProgress) onProgress(100);
+  return result;
 }
 
 export async function saveAiDesign(payload: {

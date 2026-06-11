@@ -65,20 +65,23 @@ export const PreviewCanvas: React.FC<Props> = ({
   }
 
   function perspScale(cy: number) {
-    return 1 + (cy / CANVAS_H - 0.45) * 0.18;
+    // Stronger perspective: items near bottom of canvas are ~40% larger than items near top
+    return 0.78 + (cy / CANVAS_H) * 0.44;
   }
 
+  // cy here is the item CENTER — shadow goes at the bottom edge (floor contact)
   function drawFloorShadow(ctx: CanvasRenderingContext2D, cx: number, cy: number, fw: number, fh: number) {
+    const floorY = cy + fh * 0.50;  // bottom edge of item = floor contact
     ctx.save();
-    ctx.translate(cx, cy + fh * 0.46);
-    ctx.scale(1, 0.22);
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, fw * 0.48);
-    g.addColorStop(0, 'rgba(0,0,0,0.30)');
-    g.addColorStop(0.6, 'rgba(0,0,0,0.10)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.translate(cx, floorY);
+    ctx.scale(1, 0.15);  // flatter, more realistic floor shadow
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, fw * 0.50);
+    g.addColorStop(0,   'rgba(0,0,0,0.35)');
+    g.addColorStop(0.5, 'rgba(0,0,0,0.12)');
+    g.addColorStop(1,   'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.ellipse(0, 0, fw * 0.48, fw * 0.48, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, fw * 0.50, fw * 0.50, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
