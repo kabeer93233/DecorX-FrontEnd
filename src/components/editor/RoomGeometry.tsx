@@ -10,7 +10,7 @@ function FloorPlanks({ width, depth }: { width: number; depth: number }) {
   const unit = plankW + plankGap;
   const cols = Math.ceil(width  / unit) + 2;
   const rows = Math.ceil(depth  / unit) + 2;
-  const planks: JSX.Element[] = [];
+  const planks: React.ReactElement[] = [];
 
   const SHADES = ['#C4A070', '#BF9B6A', '#C9A878', '#BA9565', '#CDB07E'];
 

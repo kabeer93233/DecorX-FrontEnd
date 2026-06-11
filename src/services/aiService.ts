@@ -184,7 +184,7 @@ export async function removeBackground(
     progress: (_key: string, current: number, total: number) => {
       if (onProgress && total > 0) onProgress(Math.round((current / total) * 100));
     },
-    model: 'small',
+    model: 'isnet',
   });
 
   // Step 3: Auto-crop to tightest non-transparent bounds

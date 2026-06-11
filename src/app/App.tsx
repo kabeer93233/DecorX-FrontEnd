@@ -147,7 +147,7 @@ const App = () => {
             }
           />
 
-          <Route
+          {/* <Route
             path="/ai-preview"
             element={
               <ProtectedRoutes>
@@ -158,7 +158,7 @@ const App = () => {
                 </EmailVerifiedRoute>
               </ProtectedRoutes>
             }
-          />
+          /> */}
 
           <Route
             path="/ai-designer"

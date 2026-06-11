@@ -1,10 +1,43 @@
+/// <reference types="@react-three/fiber" />
+/// <reference types="react" />
 import React, { useRef } from 'react';
 import { ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { DesignItem } from '../../types/editor';
 import { useEditorStore } from '../../store/editorStore';
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      group: any;
+      mesh: any;
+      boxGeometry: any;
+      meshLambertMaterial: any;
+      meshBasicMaterial: any;
+      ringGeometry: any;
+      cylinderGeometry: any;
+      sphereGeometry: any;
+      planeGeometry: any;
+      // ── Lights ──
+      hemisphereLight: any;
+      ambientLight: any;
+      directionalLight: any;
+      pointLight: any;
+      spotLight: any;
+      // ── Scene ──
+      color: any;
+      fog: any;
+      // ── Geometry ──
+      bufferGeometry: any;
+      // ── Materials ──
+      meshStandardMaterial: any;
+      meshPhongMaterial: any;
+    }
+  }
+}
 
 // ── Real dimensions (W × H × D in metres) ─────────────────────────────────
+
+
 export const CATEGORY_DIMS: Record<string, [number, number, number]> = {
   sofa:       [2.2,  0.85, 0.95],
   loveseat:   [1.4,  0.85, 0.9],
