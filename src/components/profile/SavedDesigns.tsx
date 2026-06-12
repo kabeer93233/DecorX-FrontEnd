@@ -1,25 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Palette, Trash2, Calendar } from 'lucide-react';
-import { getMyDesigns, deleteDesign } from '../../services/aiService';
-import { ROOMS } from '../../data/rooms';
+import { getMyAiDesigns, deleteAiDesign } from '../../services/aiService';
+import { AiDesignRecord } from '../../types/ai';
 import { toast } from 'sonner';
 
-interface DesignSummary {
-  id: string;
-  name: string;
-  roomId: string;
-  screenshotUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const SavedDesigns: React.FC = () => {
-  const [designs, setDesigns] = useState<DesignSummary[]>([]);
+  const [designs, setDesigns] = useState<AiDesignRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getMyDesigns()
+    getMyAiDesigns()
       .then(setDesigns)
       .catch(() => toast.error('Failed to load designs'))
       .finally(() => setLoading(false));
@@ -28,21 +19,16 @@ export const SavedDesigns: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this design?')) return;
     try {
-      await deleteDesign(id);
-      setDesigns((prev) => prev.filter((d) => d.id !== id));
+      await deleteAiDesign(id);
+      setDesigns(prev => prev.filter(d => d.id !== id));
       toast.success('Design deleted');
     } catch {
       toast.error('Failed to delete design');
     }
   };
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric',
-    });
-
-  const getRoomName = (roomId: string) =>
-    ROOMS.find((r) => r.id === roomId)?.name ?? roomId;
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
   if (loading) {
     return (
@@ -57,13 +43,13 @@ export const SavedDesigns: React.FC = () => {
       <div className="bg-white rounded-3xl p-12 border border-stone-200 text-center">
         <Palette className="h-16 w-16 text-stone-300 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-stone-900 mb-2">No Saved Designs</h3>
-        <p className="text-stone-600 mb-6">Create your first 3D room design and save it here.</p>
+        <p className="text-stone-600 mb-6">Create a room design in the 2D AI Designer and save it here.</p>
         <Link
-          to="/ai-preview"
+          to="/ai-designer"
           className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white font-semibold rounded-full hover:bg-orange-600 transition-colors"
         >
           <Palette className="h-5 w-5" />
-          Start Designing
+          Open AI Designer
         </Link>
       </div>
     );
@@ -80,17 +66,17 @@ export const SavedDesigns: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {designs.map((design) => (
+        {designs.map(design => (
           <div
             key={design.id}
             className="bg-white rounded-2xl overflow-hidden border border-stone-200 hover:shadow-xl transition-all group"
           >
-            {/* Screenshot preview */}
+            {/* Result image */}
             <div className="relative aspect-video overflow-hidden bg-stone-100">
-              {design.screenshotUrl ? (
+              {design.resultImageUrl ? (
                 <img
-                  src={design.screenshotUrl}
-                  alt={design.name}
+                  src={design.resultImageUrl}
+                  alt={design.productName}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
@@ -105,24 +91,31 @@ export const SavedDesigns: React.FC = () => {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
+              {design.roomStyle && (
+                <span className="absolute bottom-3 left-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-sm capitalize">
+                  {design.roomStyle}
+                </span>
+              )}
             </div>
 
             {/* Info */}
             <div className="p-4 space-y-3">
               <div>
-                <h3 className="font-bold text-stone-900 truncate">{design.name}</h3>
-                <p className="text-xs text-stone-500 mt-0.5">{getRoomName(design.roomId)}</p>
+                <h3 className="font-bold text-stone-900 truncate">{design.productName}</h3>
+                {design.roomType && (
+                  <p className="text-xs text-orange-500 font-medium mt-0.5 capitalize">{design.roomType}</p>
+                )}
                 <p className="text-xs text-stone-400 flex items-center gap-1 mt-1">
                   <Calendar className="h-3 w-3" />
-                  {formatDate(design.updatedAt)}
+                  {formatDate(design.createdAt)}
                 </p>
               </div>
 
               <Link
-                to={`/room-editor/${design.roomId}?designId=${design.id}`}
+                to="/ai-designer"
                 className="block w-full py-2 text-center bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors text-sm"
               >
-                Open in Editor
+                Open Designer
               </Link>
             </div>
           </div>

@@ -1,2 +1,4 @@
 /// <reference types="vite/client" />
-/// <reference types="@react-three/fiber" />
+
+declare module 'slick-carousel/slick/slick.css';
+declare module 'slick-carousel/slick/slick-theme.css';

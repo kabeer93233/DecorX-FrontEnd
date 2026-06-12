@@ -4,22 +4,26 @@ import {
   Navigate,
 } from 'react-router-dom';
 
-interface Props{
-  children:React.ReactNode;
+import {
+  getRole,
+} from '../utils/auth';
+
+interface Props {
+
+  children:
+  React.ReactNode;
 }
 
-export const AdminRoute=({
+export const AdminRoute = ({
   children,
-}:Props)=>{
+}: Props) => {
 
-  const role=
-  localStorage.getItem(
-    'role',
-  );
+  const role =
+    getRole();
 
-  if(role!=='admin'){
+  if (role !== 'admin') {
 
-    return(
+    return (
       <Navigate to="/" />
     );
   }

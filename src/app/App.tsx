@@ -11,9 +11,7 @@ import { About } from '../pages/About';
 import { Contact } from '../pages/Contact';
 import { Login } from '../pages/Login';
 import { Signup } from '../pages/Signup';
-import { AIPreview } from '../pages/AIPreview';
 import { AIDesigner } from '../pages/AIDesigner';
-import RoomEditor from '../pages/RoomEditor';
 import { Checkout } from '../pages/Checkout';
 import { Profile } from '../pages/Profile';
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
@@ -147,6 +145,7 @@ const App = () => {
             }
           />
 
+<<<<<<< HEAD
           {/* <Route
             path="/ai-preview"
             element={
@@ -160,6 +159,8 @@ const App = () => {
             }
           /> */}
 
+=======
+>>>>>>> 3566c7a227fad6a7fd1888c0dd1f4148673cead1
           <Route
             path="/ai-designer"
             element={
@@ -168,17 +169,6 @@ const App = () => {
                   <Layout>
                     <AIDesigner />
                   </Layout>
-                </EmailVerifiedRoute>
-              </ProtectedRoutes>
-            }
-          />
-
-          <Route
-            path="/room-editor/:roomId"
-            element={
-              <ProtectedRoutes>
-                <EmailVerifiedRoute>
-                  <RoomEditor />
                 </EmailVerifiedRoute>
               </ProtectedRoutes>
             }

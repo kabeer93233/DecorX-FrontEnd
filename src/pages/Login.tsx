@@ -7,7 +7,9 @@ import { useShop } from '../context/ShopContext';
 
 export const Login = () => {
   const navigate = useNavigate();
+  const [rememberMe, setRememberMe] = React.useState(false);
 
+  const storage = rememberMe ? localStorage : sessionStorage;
   const {
     fetchCart,
     fetchWishlist,
@@ -32,27 +34,29 @@ export const Login = () => {
           },
         );
         console.log(response.data);
-        localStorage.setItem(
+        storage.setItem(
           "access_token",
           response.data.access_token,
         );
 
-        localStorage.setItem(
+        storage.setItem(
           "refresh_token",
           response.data.refresh_token,
         );
 
-        localStorage.setItem(
+        storage.setItem(
           "role",
           response.data.user.role,
         );
 
-        localStorage.setItem(
+        storage.setItem(
           "isEmailVerified",
-          response.data.user.isEmailVerified,
+          String(
+            response.data.user.isEmailVerified
+          ),
         );
 
-        localStorage.setItem(
+        storage.setItem(
           "fullName",
           response.data.user.fullName,
         );
@@ -62,7 +66,7 @@ export const Login = () => {
         );
         await fetchCart();
         await fetchWishlist();
-        navigate('/profile');
+        window.location.href = "/";
 
       } catch (error: any) {
 
@@ -119,6 +123,10 @@ export const Login = () => {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) =>
+                  setRememberMe(e.target.checked)
+                }
                 className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-stone-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-stone-900">
