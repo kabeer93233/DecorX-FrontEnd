@@ -11,7 +11,6 @@ import { About } from '../pages/About';
 import { Contact } from '../pages/Contact';
 import { Login } from '../pages/Login';
 import { Signup } from '../pages/Signup';
-import { AIPreview } from '../pages/AIPreview';
 import { AIDesigner } from '../pages/AIDesigner';
 import { Checkout } from '../pages/Checkout';
 import { Profile } from '../pages/Profile';
@@ -142,19 +141,6 @@ const App = () => {
                 <Layout>
                   <Contact />
                 </Layout>
-              </ProtectedRoutes>
-            }
-          />
-
-          <Route
-            path="/ai-preview"
-            element={
-              <ProtectedRoutes>
-                <EmailVerifiedRoute>
-                  <Layout>
-                    <AIPreview />
-                  </Layout>
-                </EmailVerifiedRoute>
               </ProtectedRoutes>
             }
           />

@@ -72,7 +72,7 @@ export const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
     { name: 'Shop', path: '/shop' },
-    { name: 'AI Decor', path: '/ai-preview' },
+    { name: 'AI Decor', path: '/ai-designer' },
 
     ...(token
       ? [
