@@ -225,7 +225,7 @@ export async function removeBackground(
     progress: (_key: string, current: number, total: number) => {
       if (onProgress && total > 0) onProgress(10 + Math.round((current / total) * 85));
     },
-    model: 'isnet',
+    model: 'medium',
   });
 
   // Safety timeout — never hang silently
