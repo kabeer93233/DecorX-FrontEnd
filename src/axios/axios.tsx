@@ -1,28 +1,32 @@
 import axios from "axios";
 
+import {
+  getAccessToken,
+  getRefreshToken,
+} from "../utils/auth";
+
 const custom_axios = axios.create({
 
-  baseURL: import.meta.env.VITE_BASE_URL,
+  baseURL:
+  import.meta.env.VITE_BASE_URL,
 
   headers: {
+
     Accept: "*/*",
-    "Content-Type": "application/json",
+
+    "Content-Type":
+    "application/json",
   },
 
   timeout: 15000,
 });
-
-
-// REQUEST INTERCEPTOR
 
 custom_axios.interceptors.request.use(
 
   (config) => {
 
     const token =
-      localStorage.getItem(
-        "access_token",
-      );
+      getAccessToken();
 
     if (token) {
 
@@ -33,7 +37,6 @@ custom_axios.interceptors.request.use(
     return config;
   },
 );
-
 
 let isRefreshing = false;
 
@@ -72,9 +75,17 @@ custom_axios.interceptors.response.use(
       try {
 
         const refreshToken =
+          getRefreshToken();
+
+        const storage =
+
           localStorage.getItem(
             "refresh_token"
-          );
+          )
+
+          ? localStorage
+
+          : sessionStorage;
 
         const response =
           await axios.post(
@@ -92,12 +103,12 @@ custom_axios.interceptors.response.use(
         const newRefreshToken =
           response.data.refresh_token;
 
-        localStorage.setItem(
+        storage.setItem(
           "access_token",
           newAccessToken,
         );
 
-        localStorage.setItem(
+        storage.setItem(
           "refresh_token",
           newRefreshToken,
         );
@@ -116,6 +127,8 @@ custom_axios.interceptors.response.use(
         isRefreshing = false;
 
         localStorage.clear();
+
+        sessionStorage.clear();
 
         window.location.href =
           "/login";

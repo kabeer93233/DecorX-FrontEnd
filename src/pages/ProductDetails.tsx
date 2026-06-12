@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
+  getAccessToken,
+} from '../utils/auth';
+import {
   Minus,
   Plus,
   ShoppingCart,
@@ -37,7 +40,7 @@ export const ProductDetails = () => {
         setLoading(true);
 
         const token =
-          localStorage.getItem('token');
+          getAccessToken();
 
         const response =
           await custom_axios.get(

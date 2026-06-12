@@ -7,6 +7,9 @@ import { OrderSummary } from '../components/checkout/OrderSummary';
 import { useShop } from '../context/ShopContext';
 import { toast } from 'sonner';
 import custom_axios from '../axios/axios';
+import {
+  getIsVerified,
+} from '../utils/auth';
 
 export const Checkout: React.FC = () => {
 
@@ -309,11 +312,8 @@ export const Checkout: React.FC = () => {
     );
   }
 
-  const isVerified =
-
-    localStorage.getItem(
-      'isEmailVerified',
-    ) === 'true';
+const isVerified =
+  getIsVerified();
 
   return (
 
