@@ -145,22 +145,6 @@ const App = () => {
             }
           />
 
-<<<<<<< HEAD
-          {/* <Route
-            path="/ai-preview"
-            element={
-              <ProtectedRoutes>
-                <EmailVerifiedRoute>
-                  <Layout>
-                    <AIPreview />
-                  </Layout>
-                </EmailVerifiedRoute>
-              </ProtectedRoutes>
-            }
-          /> */}
-
-=======
->>>>>>> 3566c7a227fad6a7fd1888c0dd1f4148673cead1
           <Route
             path="/ai-designer"
             element={
