@@ -196,6 +196,42 @@ export function warmupBgRemoval(): void {
   try { getBgWorker(); } catch { /* ignore — warmup is best-effort */ }
 }
 
+export interface RoomItemForDesign {
+  id: string;
+  productName: string;
+  category: string;
+  widthCm: number;
+  heightCm: number;
+}
+
+export interface RedesignResult {
+  placements: Array<{
+    id: string;
+    /** horizontal center as fraction of canvas width (0–1) */
+    cx_pct: number;
+    /** where item's feet/base sit as fraction of canvas height (0–1) */
+    foot_y_pct: number;
+  }>;
+  designTheme: string;
+}
+
+/**
+ * Ask the AI to arrange ALL furniture in the room as an expert interior designer.
+ * Returns new cx/cy for every item. Scale is always computed client-side.
+ */
+export async function redesignRoom(
+  roomImageUrl: string,
+  floorLineY: number,
+  items: RoomItemForDesign[],
+): Promise<RedesignResult> {
+  const res = await custom_axios.post('/ai-preview/redesign-room', {
+    roomImageUrl,
+    floorLineY,
+    items,
+  });
+  return res.data.data as RedesignResult;
+}
+
 export interface PlacedItemContext {
   cx: number;
   cy: number;
@@ -207,7 +243,8 @@ export interface PlacedItemContext {
 export interface PlaceItemResult {
   cx: number;
   cy: number;
-  scale: number;
+  /** scale is NOT returned by AI — frontend computes it from product dimensions */
+  scale?: number;
   reason: string;
 }
 

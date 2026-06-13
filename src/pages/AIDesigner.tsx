@@ -6,7 +6,7 @@ import { RoomUploader } from '../components/ai/RoomUploader';
 import { RoomInsightsPanel } from '../components/ai/RoomInsightsPanel';
 import { PreviewCanvas, PlacedItem, CANVAS_W, CANVAS_H } from '../components/ai/PreviewCanvas';
 import { FurnitureSelector } from '../components/ai/FurnitureSelector';
-import { analyzeRoom, removeBackground, warmupBgRemoval, placeItem } from '../services/aiService';
+import { analyzeRoom, removeBackground, warmupBgRemoval, redesignRoom } from '../services/aiService';
 import { RoomAnalysis } from '../types/ai';
 import { useShop } from '../context/ShopContext';
 
@@ -23,17 +23,15 @@ interface Product {
 }
 
 interface SmartItem extends PlacedItem {
-  /** original source URL (before BG removal) */
-  sourceUrl: string;
-  /** true = BG not yet cleaned */
-  needsCleanup: boolean;
-  /** animation: 0 → target over 350 ms */
-  scaleTarget: number;
-  /** dominant color hex sampled from thumbnail */
+  sourceUrl:     string;
+  needsCleanup:  boolean;
+  scaleTarget:   number;
   dominantColor: string;
-  /** natural dims measured from off-screen cache */
-  naturalW: number;
-  naturalH: number;
+  naturalW:      number;
+  naturalH:      number;
+  /** real-world dimensions (cm) kept for AI redesign calls */
+  widthCm:  number;
+  heightCm: number;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -77,11 +75,13 @@ const DEFAULT_X: Record<string, number[]> = {
 };
 
 interface PlacementParams {
-  naturalW:      number;
-  naturalH:      number;
+  naturalW:        number;
+  naturalH:        number;
   productWidthCm:  number;  // from DB, cm
   productHeightCm: number;  // from DB, cm
-  aiZones?: Record<string, { x: number; y: number }>;
+  aiZones?:        Record<string, { x: number; y: number }>;
+  /** AI-supplied cy for the item center (used to derive placement depth) */
+  overrideCy?:     number;
 }
 
 function getInstantPlacement(
@@ -90,17 +90,25 @@ function getInstantPlacement(
   floorPct: number,
   params: PlacementParams,
 ) {
-  const { naturalW, naturalH, productWidthCm, productHeightCm, aiZones } = params;
+  const { naturalW, naturalH, productWidthCm, productHeightCm, aiZones, overrideCy } = params;
   const floorY  = floorPct * CANVAS_H;
   const aspect  = naturalH / Math.max(naturalW, 1);  // h/w ratio
 
+  // If AI supplied a cy, derive the effective floor depth from it.
+  // For floor items: cy = baseY - fh/2 → baseY ≈ cy + fh/2.
+  // We use this baseY as the depth anchor for perspective scaling.
+  const aiBaseY = overrideCy !== undefined
+    ? Math.min(overrideCy + 60, CANVAS_H * 0.90)   // rough estimate, refined below
+    : null;
+
   // ── Pendant / ceiling lamps: hang from top ──────────────────────────────────
   if (category === 'pendant') {
-    const fw  = Math.min(130, CANVAS_W * 0.11);
-    const fh  = fw * aspect;
-    const cx  = Math.round((aiZones?.lamp?.x ?? (DEFAULT_X.pendant?.[count % 2] ?? 0.48)) * CANVAS_W);
-    const cy  = Math.round(fh / 2 + 20);   // hang near ceiling
-    const ps  = perspScale(cy);
+    const fw    = Math.min(100, CANVAS_W * 0.09);
+    const fh    = fw * aspect;
+    // cx is overridden by AI placement result in the caller; return default here
+    const cx    = Math.round((aiZones?.lamp?.x ?? (DEFAULT_X.pendant?.[count % 2] ?? 0.48)) * CANVAS_W);
+    const cy    = Math.round(fh / 2 + 20);   // always hang near ceiling regardless of AI cy
+    const ps    = perspScale(cy);
     const scale = fw / (CANVAS_W * ps);
     return { x: cx, y: Math.max(30, cy), scale };
   }
@@ -158,16 +166,16 @@ function getInstantPlacement(
   const scale = fw / (CANVAS_W * ps);
 
   // ── Y: bottom-anchor — base sits exactly on the floor at its depth ──────────
-  //   AI zone gives the floor Y at that depth; fall back to detected floorPct
   const aiKey = category === 'floor-lamp' || category === 'table-lamp' ? 'lamp' : category;
   const zoneY = aiZones?.[aiKey]?.y;
-  const baseY = zoneY ? zoneY * CANVAS_H : floorY;
+  // Priority: AI per-item overrideCy → room-analysis zone → detected floor
+  const baseY = aiBaseY ?? (zoneY ? zoneY * CANVAS_H : floorY);
   const cy    = Math.max(fh / 2 + 10, Math.min(CANVAS_H - 20, Math.round(baseY - fh / 2)));
 
   // ── X: AI placement zone preferred ─────────────────────────────────────────
-  const zoneX   = aiZones?.[aiKey]?.x;
+  const zoneX     = aiZones?.[aiKey]?.x;
   const xFallback = (DEFAULT_X[category] ?? [0.38, 0.60])[count % (DEFAULT_X[category]?.length ?? 2)];
-  const cx      = Math.round((zoneX ?? xFallback) * CANVAS_W);
+  const cx        = Math.round((zoneX ?? xFallback) * CANVAS_W);
 
   // For second+ items of the same category, offset so they don't stack
   const offsetX = count > 0 ? (count % 2 === 0 ? -120 : 120) : 0;
@@ -253,6 +261,69 @@ function measureImage(url: string): Promise<{ w: number; h: number }> {
     img.onerror = () => resolve({ w: 0, h: 0 });
     img.src = url;
   });
+}
+
+/**
+ * Convert AI placement (cx_pct, foot_y_pct) + product dimensions → canvas {cx, cy, scale}.
+ *
+ * foot_y_pct: where the item's FEET/BASE should sit, as a 0–1 fraction of canvas height.
+ *   AI returns this directly from looking at the room photo. No zone mapping needed.
+ *
+ * Bottom-anchor (exact):
+ *   PreviewCanvas renders: fw_r = CANVAS_W * scale * perspScale(cy)
+ *                          fh_r = fw_r * aspect
+ *   We want: cy + fh_r/2 = baseY  (item feet at baseY)
+ *   perspScale(y) = K0 + K1*(y/H), so solving linearly:
+ *     cy = (baseY - K0*A) / (1 + K1*A/H)   where A = fh/(2*perspScale(baseY))
+ */
+function computePlacement(
+  floorPct: number,
+  cat: string,
+  cx_pct: number,
+  foot_y_pct: number,
+  natW: number, natH: number,
+  wCm: number, hCm: number,
+): { cx: number; cy: number; scale: number } {
+  const floorY = floorPct * CANVAS_H;
+  const aspect = natH / Math.max(natW, 1);
+  const K0 = 0.55, K1 = 0.70;
+  const cx = Math.round(cx_pct * CANVAS_W);
+
+  // ── Ceiling items (pendants): hang from top ────────────────────────────────
+  if (cat === 'pendant' || foot_y_pct <= 0.08) {
+    const fw = Math.min(MAX_FW['pendant'] ?? 100, CANVAS_W * 0.09);
+    const fh = fw * aspect;
+    const cy = Math.round(fh / 2 + 20);
+    return { cx, cy, scale: fw / (CANVAS_W * perspScale(cy)) };
+  }
+
+  // ── Compute baseY from foot_y_pct (where feet actually land) ──────────────
+  const baseY = clamp(foot_y_pct * CANVAS_H, 30, CANVAS_H * 0.96);
+
+  // ── Width / scale at baseY perspective depth ───────────────────────────────
+  const ps = K0 + K1 * (baseY / CANVAS_H);
+  let fw: number;
+  if (aspect > 2.2) {
+    // Tall items (floor lamps, wardrobes): scale by height relative to room height
+    const roomHpx  = floorY * 0.92;
+    const targetFh = Math.min((hCm / ROOM_H_CM) * roomHpx, roomHpx * 0.52);
+    fw = Math.max(30, targetFh / aspect);
+  } else {
+    fw = (wCm / ROOM_W_CM) * CANVAS_W / ps;
+  }
+  fw = Math.min(fw, MAX_FW[cat] ?? 230);
+
+  // ── Exact bottom-anchor ────────────────────────────────────────────────────
+  const fh = fw * aspect;
+  const A  = fh / (2 * ps);
+  const cy = Math.max(fh / 2 + 10, Math.min(CANVAS_H - 20,
+    Math.round((baseY - K0 * A) / (1 + (K1 * A) / CANVAS_H)),
+  ));
+  return { cx, cy, scale: fw / (CANVAS_W * ps) };
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
 }
 
 let _zIdx = 100;
@@ -374,109 +445,144 @@ export const AIDesigner: React.FC = () => {
     return () => { animFrames.current.forEach(id => cancelAnimationFrame(id)); };
   }, []);
 
-  // ── Add product ──────────────────────────────────────────────────────────────
+  // ── Add product — then ask AI to redesign the whole room layout ──────────────
   const handleAddProduct = useCallback(async (product: Product) => {
     if (!roomPreview) { toast.error('Upload a room photo first'); return; }
-    if (isPlacing) { toast.info('AI is placing the previous item, please wait…'); return; }
+    if (isPlacing)   { toast.info('AI is redesigning, please wait…'); return; }
 
     setIsPlacing(true);
 
-    // Prefetch image dims in parallel with AI placement call
-    const dimsPromise = (async () => {
+    // Measure image dims and sample color in parallel
+    const dimsPromise  = (async () => {
       const cached = imgDimCache.current.get(product.image);
       if (cached) return cached;
       const d = await measureImage(product.image);
       imgDimCache.current.set(product.image, d);
       return d;
     })();
+    const colorPromise = sampleDominantColor(product.image);
 
-    // Build context of already-placed items for the AI
-    const existingContext = items.map(i => ({
-      cx:          i.cx,
-      cy:          i.cy,
-      scale:       i.scale,
-      category:    getDisplayCategory(i.productName, (i as any).category ?? ''),
-      productName: i.productName,
-    }));
+    const dims     = await dimsPromise;
+    const domColor = await colorPromise;
 
-    // Call AI placement — sends room photo + existing items → returns cx, cy, scale
-    let placement: { cx: number; cy: number; scale: number } | null = null;
-    try {
-      if (roomCloudUrl) {
-        placement = await placeItem(
-          roomCloudUrl,
-          product.productName,
-          getDisplayCategory(product.productName, product.category),
-          product.width  ?? 80,
-          product.height ?? 90,
-          floorPct,
-          existingContext,
-        );
-      }
-    } catch {
-      // Fall back to client-side placement below
-    }
+    // Compute scale client-side (AI never computes scale — it's unreliable for lamps)
+    const displayCat = getDisplayCategory(product.productName, product.category);
+    const sameCount  = items.filter(i =>
+      getDisplayCategory(i.productName, (i as any).category ?? '') === displayCat,
+    ).length;
+    const instant = getInstantPlacement(displayCat, sameCount, floorPct, {
+      naturalW:        dims.w,
+      naturalH:        dims.h,
+      productWidthCm:  product.width  ?? 80,
+      productHeightCm: product.height ?? 90,
+      aiZones,
+    });
 
-    // Client-side fallback if AI placement failed or no cloud URL
-    const dims = await dimsPromise;
-    if (!placement) {
-      const displayCat = getDisplayCategory(product.productName, product.category);
-      const sameCount  = items.filter(i =>
-        getDisplayCategory(i.productName, (i as any).category ?? '') === displayCat,
-      ).length;
-      const instant = getInstantPlacement(displayCat, sameCount, floorPct, {
-        naturalW:        dims.w,
-        naturalH:        dims.h,
-        productWidthCm:  product.width  ?? 80,
-        productHeightCm: product.height ?? 90,
-        aiZones,
-      });
-      placement = { cx: instant.x, cy: instant.y, scale: instant.scale };
-    }
-
-    const domColor = await sampleDominantColor(product.image);
-
+    const newItemId = `${product.id}-${Date.now()}`;
     const newItem: SmartItem = {
-      id:           `${product.id}-${Date.now()}`,
-      productId:    product.id,
-      productName:  product.productName,
-      imageUrl:     product.image,
-      sourceUrl:    product.image,
-      cx:           placement.cx,
-      cy:           placement.cy,
-      scale:        0,               // starts at 0 for animation
-      scaleTarget:  placement.scale,
-      rotation:     0,
-      zIndex:       _zIdx++,
-      needsCleanup: true,
+      id:            newItemId,
+      productId:     product.id,
+      productName:   product.productName,
+      imageUrl:      product.image,
+      sourceUrl:     product.image,
+      cx:            instant.x,
+      cy:            instant.y,
+      scale:         0,
+      scaleTarget:   instant.scale,
+      rotation:      0,
+      zIndex:        _zIdx++,
+      needsCleanup:  true,
       dominantColor: domColor,
-      naturalW:     dims.w,
-      naturalH:     dims.h,
+      naturalW:      dims.w,
+      naturalH:      dims.h,
+      widthCm:       product.width  ?? 80,
+      heightCm:      product.height ?? 90,
     };
 
-    setItems(prev => [...prev, newItem]);
-    setSelectedId(newItem.id);
+    const allItemsForAI = [
+      ...(items as SmartItem[]).map(i => ({
+        id:          i.id,
+        productName: i.productName,
+        category:    getDisplayCategory(i.productName, ''),
+        widthCm:     i.widthCm  ?? 80,
+        heightCm:    i.heightCm ?? 90,
+      })),
+      {
+        id:          newItemId,
+        productName: product.productName,
+        category:    displayCat,
+        widthCm:     product.width  ?? 80,
+        heightCm:    product.height ?? 90,
+      },
+    ];
+
+    // Ask AI to redesign the full room layout as an expert interior designer
+    let aiPlacements: Array<{ id: string; cx_pct: number; foot_y_pct: number }> = [];
+    let designTheme = '';
+    try {
+      if (roomCloudUrl) {
+        const result = await redesignRoom(roomCloudUrl, floorPct, allItemsForAI);
+        aiPlacements = result.placements ?? [];
+        designTheme  = result.designTheme ?? '';
+      }
+    } catch {
+      // Fall back: just add new item at client-side position
+    }
+
+    // Apply AI placements — zone→cy computed via physics, never from AI
+    setItems(prev => {
+      const withNew = [...prev, newItem];
+      if (!aiPlacements.length) return withNew;
+
+      const placementMap = new Map(aiPlacements.map(p => [p.id, p]));
+
+      return withNew.map(item => {
+        const ai = placementMap.get(item.id);
+        if (!ai) return item;
+
+        if (item.id === newItemId) {
+          const pl = computePlacement(
+            floorPct, displayCat, ai.cx_pct, ai.foot_y_pct,
+            dims.w, dims.h, product.width ?? 80, product.height ?? 90,
+          );
+          return { ...item, cx: pl.cx, cy: pl.cy, scale: pl.scale, scaleTarget: pl.scale };
+        }
+
+        const si         = item as SmartItem;
+        const cachedDims = imgDimCache.current.get(item.imageUrl) ?? { w: si.naturalW || 1, h: si.naturalH || 1 };
+        const existCat   = getDisplayCategory(item.productName, '');
+        const pl = computePlacement(
+          floorPct, existCat, ai.cx_pct, ai.foot_y_pct,
+          cachedDims.w, cachedDims.h, si.widthCm ?? 80, si.heightCm ?? 90,
+        );
+        return { ...item, cx: pl.cx, cy: pl.cy, scale: pl.scale };
+      });
+    });
+
+    setSelectedId(newItemId);
     setIsPlacing(false);
 
-    animateScaleIn(newItem.id, placement.scale);
+    animateScaleIn(newItemId, instant.scale);
+
+    if (designTheme) toast.success(`Room redesigned: ${designTheme}`);
+    else             toast.success(`${product.productName} added!`);
 
     // Auto BG removal
-    setProcessingBgFor(prev => new Set(prev).add(newItem.id));
+    setProcessingBgFor(prev => new Set(prev).add(newItemId));
     removeBackground(product.image)
       .then(cleanUrl => {
         measureImage(cleanUrl).then(cd => {
           imgDimCache.current.set(cleanUrl, cd);
           setItems(prev => prev.map(i =>
-            i.id === newItem.id
+            i.id === newItemId
               ? { ...i, imageUrl: cleanUrl, needsCleanup: false, naturalW: cd.w, naturalH: cd.h }
               : i,
           ));
         });
       })
       .catch(() => { /* leave original */ })
-      .finally(() => setProcessingBgFor(prev => { const s = new Set(prev); s.delete(newItem.id); return s; }));
+      .finally(() => setProcessingBgFor(prev => { const s = new Set(prev); s.delete(newItemId); return s; }));
 
-    toast.success(`${product.productName} placed by AI!`);
   }, [roomPreview, roomCloudUrl, items, floorPct, aiZones, animateScaleIn, isPlacing]);
 
   // ── Clean All Backgrounds (bulk fallback for items that failed auto-removal) ────
@@ -517,11 +623,42 @@ export const AIDesigner: React.FC = () => {
     setItems(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i));
   }, []);
 
-  const deleteSelected = useCallback(() => {
+  const deleteSelected = useCallback(async () => {
     if (!selectedId) return;
-    setItems(prev => prev.filter(i => i.id !== selectedId));
+    const remaining = items.filter(i => i.id !== selectedId);
+    setItems(remaining);
     setSelectedId(null);
-  }, [selectedId]);
+
+    if (!roomCloudUrl || remaining.length === 0) return;
+    setIsPlacing(true);
+    try {
+      const itemsForAI = remaining.map(i => ({
+        id:          i.id,
+        productName: i.productName,
+        category:    getDisplayCategory(i.productName, ''),
+        widthCm:     (i as SmartItem).widthCm  ?? 80,
+        heightCm:    (i as SmartItem).heightCm ?? 90,
+      }));
+      const result = await redesignRoom(roomCloudUrl, floorPct, itemsForAI);
+      if (result.placements?.length) {
+        const placementMap = new Map(result.placements.map(p => [p.id, p]));
+        setItems(prev => prev.map(item => {
+          const ai = placementMap.get(item.id);
+          if (!ai) return item;
+          const si         = item as SmartItem;
+          const cachedDims = imgDimCache.current.get(item.imageUrl) ?? { w: si.naturalW || 1, h: si.naturalH || 1 };
+          const cat        = getDisplayCategory(item.productName, '');
+          const pl = computePlacement(
+            floorPct, cat, ai.cx_pct, ai.foot_y_pct,
+            cachedDims.w, cachedDims.h, si.widthCm ?? 80, si.heightCm ?? 90,
+          );
+          return { ...item, cx: pl.cx, cy: pl.cy, scale: pl.scale };
+        }));
+        if (result.designTheme) toast.success(`Room redesigned: ${result.designTheme}`);
+      }
+    } catch { /* silent — items are already removed */ }
+    finally { setIsPlacing(false); }
+  }, [selectedId, items, roomCloudUrl, floorPct]);
 
   const duplicateSelected = useCallback(() => {
     if (!selectedId) return;
@@ -569,8 +706,7 @@ export const AIDesigner: React.FC = () => {
       if (!selectedId) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
-        setItems(prev => prev.filter(i => i.id !== selectedId));
-        setSelectedId(null);
+        deleteSelected();
         return;
       }
       if (e.key.startsWith('Arrow')) {
@@ -585,7 +721,7 @@ export const AIDesigner: React.FC = () => {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedId]);
+  }, [selectedId, deleteSelected]);
 
   // ── Export ────────────────────────────────────────────────────────────────────
   const handleExport = () => {
@@ -937,6 +1073,20 @@ export const AIDesigner: React.FC = () => {
                       </div>
                     );
                   })()}
+
+                  {/* AI redesign overlay — covers the whole canvas while AI is working */}
+                  {isPlacing && (
+                    <div
+                      className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 pointer-events-none"
+                      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)' }}
+                    >
+                      <div className="w-12 h-12 rounded-full border-[3px] border-violet-400/30 border-t-violet-400 animate-spin" />
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-sm font-bold text-white">AI redesigning room…</span>
+                        <span className="text-[11px] text-white/55">Arranging furniture as an expert designer</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Hint */}
                   {items.length > 0 && !selectedId && (
