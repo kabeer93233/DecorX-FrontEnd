@@ -37,4 +37,10 @@ export default defineConfig({
     // @imgly/background-removal uses WASM workers — must NOT be pre-bundled
     exclude: ['@imgly/background-removal'],
   },
+  worker: {
+    // 'es' format is required to support dynamic imports (import()) inside workers.
+    // 'iife' (Vite default) does not support code-splitting and will error on any
+    // dynamic import, including the @imgly/background-removal lazy load.
+    format: 'es',
+  },
 })
