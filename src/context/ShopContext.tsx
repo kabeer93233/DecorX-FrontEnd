@@ -7,7 +7,7 @@ import React,{
 } from 'react';
 
 import {
-  getAccessToken,
+  getIsLoggedIn,
 } from '../utils/auth';
 
 import {
@@ -83,10 +83,10 @@ export const ShopProvider=({
 
     try{
 
-      const token =
-      getAccessToken();
+      const isLoggedIn =
+      getIsLoggedIn();
 
-      if(!token){
+      if(!isLoggedIn){
 
         setCart([]);
 
@@ -119,10 +119,10 @@ export const ShopProvider=({
 
     try{
 
-      const token =
-      getAccessToken();
+      const isLoggedIn =
+      getIsLoggedIn();
 
-      if(!token){
+      if(!isLoggedIn){
 
         setWishlist([]);
 

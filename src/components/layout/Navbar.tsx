@@ -9,8 +9,8 @@ import {
   X
 } from 'lucide-react';
 import {
-  getAccessToken,
   getRole,
+  getIsLoggedIn,
 } from '../../utils/auth';
 
 import { useShop } from '../../context/ShopContext';
@@ -26,8 +26,9 @@ export const Navbar = () => {
     useState(false);
 
   const navigate = useNavigate();
-  const token =
-    getAccessToken();
+
+  const isLoggedIn =
+    getIsLoggedIn();
 
   const role =
     getRole();
@@ -36,21 +37,7 @@ export const Navbar = () => {
 
     try {
 
-      const refreshToken =
-      localStorage.getItem(
-        "refresh_token",
-      ) ||
-
-      sessionStorage.getItem(
-        "refresh_token",
-      );
-
-      await custom_axios.post(
-        "/auth/logout",
-        {
-          refreshToken,
-        },
-      );
+      await custom_axios.post("/auth/logout");
 
       localStorage.clear();
       sessionStorage.clear();
@@ -74,7 +61,7 @@ export const Navbar = () => {
     { name: 'Shop', path: '/shop' },
     { name: 'AI Decor', path: '/ai-designer' },
 
-    ...(token
+    ...(isLoggedIn
       ? [
           { name: 'Contact', path: '/contact' },
           { name: 'Profile', path: '/profile' },
@@ -146,7 +133,7 @@ export const Navbar = () => {
               <Search className="h-5 w-5" />
             </button>
 
-            {token && (
+            {isLoggedIn && (
 
               <Link
                 to="/wishlist"
@@ -169,7 +156,7 @@ export const Navbar = () => {
 
             )}
 
-            {token && (
+            {isLoggedIn && (
 
               <Link
                 to="/cart"
@@ -192,7 +179,7 @@ export const Navbar = () => {
 
             )}
 
-            {token ? (
+            {isLoggedIn ? (
 
               <button
                 onClick={logout}
@@ -218,7 +205,7 @@ export const Navbar = () => {
 
           <div className="flex md:hidden items-center space-x-4">
 
-            {token && (
+            {isLoggedIn && (
 
               <Link
                 to="/cart"
@@ -302,7 +289,7 @@ export const Navbar = () => {
 
               <div className="border-t border-stone-100 my-2 pt-2 flex space-x-4 px-3">
 
-                {token && (
+                {isLoggedIn && (
 
                   <Link
                     to="/wishlist"
@@ -322,7 +309,7 @@ export const Navbar = () => {
 
                 )}
 
-                {!token && (
+                {!isLoggedIn && (
 
                   <Link
                     to="/login"

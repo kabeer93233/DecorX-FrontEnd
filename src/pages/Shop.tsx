@@ -45,10 +45,7 @@ export const Shop = () => {
     categoryParam || 'All',
   );
 
-  const [
-    priceRange,
-    setPriceRange,
-  ] = useState<number>(1000);
+const [priceRange, setPriceRange] = useState<number>(120000);
 
   const [
     sortBy,
@@ -59,31 +56,23 @@ export const Shop = () => {
 
   // GET PRODUCTS
 
-  useEffect(() => {
+ useEffect(() => {
+  const getProducts = async () => {
+    try {
+      const response = await custom_axios.get("/product");
+      setProducts(response.data);
 
-    const getProducts =
-      async () => {
+      if (response.data.length > 0) {
+        const maxPrice = Math.max(...response.data.map((p: any) => p.price));
+        setPriceRange(maxPrice);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-        try {
-
-          const response =
-            await custom_axios.get(
-              "/product",
-            );
-
-          setProducts(
-            response.data,
-          );
-
-        } catch (error) {
-
-          console.log(error);
-        }
-      };
-
-    getProducts();
-
-  }, []);
+  getProducts();
+}, []);
 
   // FILTER PRODUCTS
 
@@ -266,8 +255,8 @@ export const Shop = () => {
             <input 
               type="range" 
               min="0" 
-              max="1000" 
-              step="10" 
+              max="120000" 
+              step="1000" 
               value={priceRange}
               onChange={(e) =>
                 setPriceRange(
@@ -278,7 +267,6 @@ export const Shop = () => {
               }
               className="w-full accent-orange-500"
             />
-
             <div className="flex justify-between text-sm text-stone-500 mt-2">
 
               <span>$0</span>

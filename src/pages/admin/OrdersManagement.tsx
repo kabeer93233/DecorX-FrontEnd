@@ -93,23 +93,9 @@ export const OrdersManagement =
 
       try {
 
-        const token =
-        localStorage.getItem(
-          'token',
-        );
-
         const response =
         await custom_axios.get(
-
-          '/orders',
-
-          {
-            headers: {
-
-              Authorization:
-              `Bearer ${token}`,
-            },
-          },
+          '/orders'
         );
 
         console.log(
@@ -185,23 +171,8 @@ export const OrdersManagement =
     }
 
     try {
-
-      const token =
-      localStorage.getItem(
-        'token',
-      );
-
       await custom_axios.delete(
-
-        `/orders/${id}`,
-
-        {
-          headers: {
-
-            Authorization:
-            `Bearer ${token}`,
-          },
-        },
+        `/orders/${id}`
       );
 
       setOrders(
@@ -237,26 +208,11 @@ export const OrdersManagement =
 
     try {
 
-      const token =
-      localStorage.getItem(
-        'token',
-      );
-
       await custom_axios.patch(
-
         `/orders/${id}/status`,
-
         {
           orderStatus:
           newStatus,
-        },
-
-        {
-          headers: {
-
-            Authorization:
-            `Bearer ${token}`,
-          },
         },
       );
 

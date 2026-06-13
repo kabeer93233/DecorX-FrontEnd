@@ -1,31 +1,3 @@
-export const getAccessToken = () => {
-
-  return (
-
-    localStorage.getItem(
-      "access_token"
-    ) ||
-
-    sessionStorage.getItem(
-      "access_token"
-    )
-  );
-};
-
-export const getRefreshToken = () => {
-
-  return (
-
-    localStorage.getItem(
-      "refresh_token"
-    ) ||
-
-    sessionStorage.getItem(
-      "refresh_token"
-    )
-  );
-};
-
 export const getRole = () => {
 
   return (
@@ -48,21 +20,13 @@ export const getIsVerified = (): boolean => {
   );
 };
 
-
-export const getStorage = () => {
-
-  return localStorage.getItem(
-    "access_token"
-  )
-
-    ? localStorage
-
-    : sessionStorage;
-};
-
 export const clearAuth = () => {
 
   localStorage.clear();
 
   sessionStorage.clear();
+};
+
+export const getIsLoggedIn = (): boolean => {
+  return localStorage.getItem("isLoggedIn") === "true";
 };

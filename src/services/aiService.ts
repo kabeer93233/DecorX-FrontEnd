@@ -181,10 +181,23 @@ export async function removeBackground(
   imageUrl: string,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const id = Math.random().toString(36).slice(2, 10);
-    _bgJobs.set(id, { resolve, reject, onProgress });
-    getBgWorker().postMessage({ id, imageUrl });
+  // WASM browser-side BG removal — 100% free, no API key needed
+  // Fetch as Blob in main thread to avoid CORS issues inside the WASM worker
+  let source: Blob | string = imageUrl;
+  try {
+    const fetchRes = await fetch(imageUrl, { mode: 'cors' });
+    if (fetchRes.ok) source = await fetchRes.blob();
+  } catch { /* use URL directly */ }
+
+  if (onProgress) onProgress(10);
+
+  const { removeBackground: removeBg } = await import('@imgly/background-removal');
+
+  const wasmPromise = removeBg(source, {
+    progress: (_key: string, current: number, total: number) => {
+      if (onProgress && total > 0) onProgress(10 + Math.round((current / total) * 85));
+    },
+    model: 'isnet',
   });
 }
 

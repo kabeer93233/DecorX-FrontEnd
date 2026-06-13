@@ -1,14 +1,11 @@
 import axios from "axios";
 
-import {
-  getAccessToken,
-  getRefreshToken,
-} from "../utils/auth";
-
 const custom_axios = axios.create({
 
   baseURL:
   import.meta.env.VITE_BASE_URL,
+
+  withCredentials: true,
 
   headers: {
 
@@ -20,23 +17,6 @@ const custom_axios = axios.create({
 
   timeout: 15000,
 });
-
-custom_axios.interceptors.request.use(
-
-  (config) => {
-
-    const token =
-      getAccessToken();
-
-    if (token) {
-
-      config.headers.Authorization =
-        `Bearer ${token}`;
-    }
-
-    return config;
-  },
-);
 
 let isRefreshing = false;
 
@@ -74,47 +54,16 @@ custom_axios.interceptors.response.use(
 
       try {
 
-        const refreshToken =
-          getRefreshToken();
+        await axios.post(
 
-        const storage =
+          `${import.meta.env.VITE_BASE_URL}/auth/refresh`,
 
-          localStorage.getItem(
-            "refresh_token"
-          )
+          {},
 
-          ? localStorage
-
-          : sessionStorage;
-
-        const response =
-          await axios.post(
-
-            `${import.meta.env.VITE_BASE_URL}/auth/refresh`,
-
-            {
-              refreshToken,
-            },
-          );
-
-        const newAccessToken =
-          response.data.access_token;
-
-        const newRefreshToken =
-          response.data.refresh_token;
-
-        storage.setItem(
-          "access_token",
-          newAccessToken,
+          {
+            withCredentials: true,
+          },
         );
-
-        storage.setItem(
-          "refresh_token",
-          newRefreshToken,
-        );
-
-        originalRequest.headers.Authorization =
-          `Bearer ${newAccessToken}`;
 
         isRefreshing = false;
 
