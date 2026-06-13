@@ -150,15 +150,6 @@ export const Checkout: React.FC = () => {
         return;
       }
 
-      // =========================
-      // COD FLOW
-      // =========================
-
-      const token =
-        localStorage.getItem(
-          'token',
-        );
-
       const response =
         await custom_axios.post(
 
@@ -201,14 +192,6 @@ export const Checkout: React.FC = () => {
 
               price: Number(item.product.price) || 0,
             })),
-          },
-
-          {
-            headers: {
-
-              Authorization:
-                `Bearer ${token}`,
-            },
           },
         );
 

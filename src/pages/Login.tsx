@@ -33,17 +33,7 @@ export const Login = () => {
             password: password.current?.value,
           },
         );
-        console.log(response.data);
-        storage.setItem(
-          "access_token",
-          response.data.access_token,
-        );
-
-        storage.setItem(
-          "refresh_token",
-          response.data.refresh_token,
-        );
-
+        localStorage.setItem("isLoggedIn", "true");
         storage.setItem(
           "role",
           response.data.user.role,
@@ -118,22 +108,6 @@ export const Login = () => {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) =>
-                  setRememberMe(e.target.checked)
-                }
-                className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-stone-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-stone-900">
-                Remember me
-              </label>
-            </div>
-
             <div className="text-sm">
               <a href="#" className="font-medium text-orange-600 hover:text-orange-500">
                 Forgot your password?

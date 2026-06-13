@@ -5,17 +5,17 @@ import {
 } from "react-router-dom";
 
 import {
-  getAccessToken,
+  getIsLoggedIn,
 } from "../utils/auth";
 
 export const PublicRoute = ({
   children,
 }: any) => {
 
-  const token =
-    getAccessToken();
+  const isLoggedIn =
+    getIsLoggedIn();
 
-  if (token) {
+  if (isLoggedIn) {
 
     return (
       <Navigate

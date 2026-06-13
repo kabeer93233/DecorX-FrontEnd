@@ -35,23 +35,10 @@ React.FC = () => {
 
       try {
 
-        const token =
-        localStorage.getItem(
-          'token',
-        );
-
         const response =
         await custom_axios.get(
 
-          '/orders/my-orders',
-
-          {
-            headers: {
-
-              Authorization:
-              `Bearer ${token}`,
-            },
-          },
+          '/orders/my-orders'
         );
 
         console.log(

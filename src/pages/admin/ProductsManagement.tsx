@@ -1,62 +1,78 @@
 import React, { useEffect, useState } from 'react';
-import { data, Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Search, Edit, Trash2, Eye, Plus } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { products } from '../../data/products';
 import { toast } from 'sonner';
 import custom_axios from '../../axios/axios';
-import { ApiConstants } from '../../app/API/ApiConstants';
 
-export const ProductsManagement = () => {
-  const navigate = useNavigate();
-
-  type Product = {
+type Product = {
   id: number;
   productName: string;
   description: string;
   category: string;
   price: number;
-  width: number;
-  height:number;
-  image: string,
- };
-  const [data, setData] = useState<any[]>([]);
-
-  const getProducts = async () => {
-  const response = await custom_axios.get("/product");
-
-  console.log(response.data);
-
-  setData(response.data);
+  image: string;
+  rating?: number;
+  isNew?: boolean;
 };
 
-useEffect(() => {
-  getProducts();
-}, []);
-
-useEffect(() => {
-  console.log(data);
-}, [data]);
-
+export const ProductsManagement = () => {
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [productList, setProductList] = useState(products);
 
-  const categories = ['all', ...new Set(products.map((p) => p.category))];
+  const getProducts = async () => {
+    try {
+      const response = await custom_axios.get('/product');
 
-  const filteredProducts = productList.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
+      console.log(response.data);
+
+      setProducts(response.data);
+    } catch (error) {
+      console.log(error);
+      toast.error('Failed to fetch products');
+    }
+  };
+
+  useEffect(() => {
+    getProducts();
+  }, []);
+
+  const categories = [
+    'all',
+    ...new Set(products.map((p) => p.category)),
+  ];
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.productName
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    const matchesCategory =
+      categoryFilter === 'all' ||
+      product.category === categoryFilter;
+
     return matchesSearch && matchesCategory;
   });
 
   const handleDelete = async (id: number) => {
-    if (window.confirm(`Are you sure you want to delete this product with ID : ${id}?`)) {
-      const req = await custom_axios.delete(`/product/${id}`);
-      const data = req.data;
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete product ID: ${id}?`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await custom_axios.delete(`/product/${id}`);
+
       toast.success('Product deleted successfully');
-      console.log(data);
-      window.location.reload();
+
+      setProducts((prev) =>
+        prev.filter((product) => product.id !== id)
+      );
+    } catch (error) {
+      console.log(error);
+      toast.error('Failed to delete product');
     }
   };
 
@@ -65,9 +81,15 @@ useEffect(() => {
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Products Management</h1>
-            <p className="text-gray-600 mt-1">Manage all your products inventory</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Products Management
+            </h1>
+
+            <p className="text-gray-600 mt-1">
+              Manage all your products inventory
+            </p>
           </div>
+
           <Link
             to="/admin/add-product"
             className="flex items-center gap-2 bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors w-fit"
@@ -83,7 +105,11 @@ useEffect(() => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={20}
+            />
+
             <input
               type="text"
               placeholder="Search products..."
@@ -108,7 +134,7 @@ useEffect(() => {
         </div>
 
         <div className="mt-4 text-sm text-gray-600">
-          Showing {filteredProducts.length} of {productList.length} products
+          Showing {filteredProducts.length} products
         </div>
       </div>
 
@@ -118,28 +144,17 @@ useEffect(() => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Product
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rating
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left">Product</th>
+                <th className="px-6 py-3 text-left">Category</th>
+                <th className="px-6 py-3 text-left">Price</th>
+                <th className="px-6 py-3 text-left">Rating</th>
+                <th className="px-6 py-3 text-left">Status</th>
+                <th className="px-6 py-3 text-left">Actions</th>
               </tr>
             </thead>
+
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.map((product) => (
+              {filteredProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -148,61 +163,57 @@ useEffect(() => {
                         alt={product.productName}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
+
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{product.productName}</div>
-                        <div className="text-xs text-gray-500">{product.id}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {product.productName}
+                        </div>
+
+                        <div className="text-xs text-gray-500">
+                          {product.id}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+
+                  <td className="px-6 py-4 text-sm text-gray-700">
                     {product.category}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      ${product.price.toFixed(2)}
-                    </div>
-                    {product.oldPrice && (
-                      <div className="text-xs text-gray-500 line-through">
-                        ${product.oldPrice.toFixed(2)}
-                      </div>
-                    )}
+
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    ${product.price}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    ⭐ {product.rating}
+
+                  <td className="px-6 py-4 text-sm text-gray-700">
+                    ⭐ {product.rating || 0}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        product.isNew
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
+
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
                       {product.isNew ? 'New' : 'Active'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+
+                  <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <Link
                         to={`/product/${product.id}`}
                         target="_blank"
                         className="text-blue-600 hover:text-blue-800 p-2"
-                        title="View Product"
                       >
                         <Eye size={18} />
-
                       </Link>
+
                       <Link
                         to={`/admin/edit-product/${product.id}`}
                         className="text-orange-600 hover:text-orange-800 p-2"
-                        title="Edit Product"
                       >
                         <Edit size={18} />
                       </Link>
+
                       <button
                         onClick={() => handleDelete(product.id)}
                         className="text-red-600 hover:text-red-800 p-2"
-                        title="Delete Product"
                       >
                         <Trash2 size={18} />
                       </button>
