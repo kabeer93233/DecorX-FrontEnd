@@ -196,6 +196,47 @@ export function warmupBgRemoval(): void {
   try { getBgWorker(); } catch { /* ignore — warmup is best-effort */ }
 }
 
+export interface PlacedItemContext {
+  cx: number;
+  cy: number;
+  scale: number;
+  category: string;
+  productName: string;
+}
+
+export interface PlaceItemResult {
+  cx: number;
+  cy: number;
+  scale: number;
+  reason: string;
+}
+
+/**
+ * Ask the AI to calculate the correct position + scale for a new item.
+ * The AI sees the room photo and the list of already-placed items so it can
+ * avoid overlap and size the piece correctly relative to the actual room.
+ */
+export async function placeItem(
+  roomImageUrl: string,
+  productName: string,
+  productCategory: string,
+  productWidthCm: number,
+  productHeightCm: number,
+  floorLineY: number,
+  existingItems: PlacedItemContext[],
+): Promise<PlaceItemResult> {
+  const res = await custom_axios.post('/ai-preview/place-item', {
+    roomImageUrl,
+    productName,
+    productCategory,
+    productWidthCm,
+    productHeightCm,
+    floorLineY,
+    existingItems,
+  });
+  return res.data.data as PlaceItemResult;
+}
+
 export async function getMyAiDesigns(): Promise<AiDesignRecord[]> {
   const res = await custom_axios.get('/ai-preview/my-ai-designs');
   return res.data.data;

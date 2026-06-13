@@ -6,13 +6,21 @@ import { RoomUploader } from '../components/ai/RoomUploader';
 import { RoomInsightsPanel } from '../components/ai/RoomInsightsPanel';
 import { PreviewCanvas, PlacedItem, CANVAS_W, CANVAS_H } from '../components/ai/PreviewCanvas';
 import { FurnitureSelector } from '../components/ai/FurnitureSelector';
-import { analyzeRoom, removeBackground, warmupBgRemoval } from '../services/aiService';
+import { analyzeRoom, removeBackground, warmupBgRemoval, placeItem } from '../services/aiService';
 import { RoomAnalysis } from '../types/ai';
 import { useShop } from '../context/ShopContext';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface Product { id: string; productName: string; category: string; price: number; image: string; }
+interface Product {
+  id: string;
+  productName: string;
+  category: string;
+  price: number;
+  image: string;
+  width?: number;   // real-world cm
+  height?: number;  // real-world cm
+}
 
 interface SmartItem extends PlacedItem {
   /** original source URL (before BG removal) */
@@ -30,32 +38,142 @@ interface SmartItem extends PlacedItem {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-// yBelow = how far BELOW the detected floor line to place the item center (fraction of canvas height).
-// Positive = below floor line (on floor). Negative = above floor line (on wall, e.g. mirror).
-// This ensures items always land on the floor regardless of where detectFloorPct reports it.
-const INSTANT_RULES: Record<string, Array<{ xPct: number; yBelow: number; scale: number }>> = {
-  sofa:       [{ xPct: 0.22, yBelow: 0.09, scale: 0.28 }, { xPct: 0.60, yBelow: 0.09, scale: 0.26 }],
-  loveseat:   [{ xPct: 0.25, yBelow: 0.08, scale: 0.22 }, { xPct: 0.62, yBelow: 0.08, scale: 0.20 }],
-  chair:      [{ xPct: 0.72, yBelow: 0.08, scale: 0.16 }, { xPct: 0.18, yBelow: 0.08, scale: 0.15 }, { xPct: 0.82, yBelow: 0.08, scale: 0.16 }],
-  table:      [{ xPct: 0.38, yBelow: 0.08, scale: 0.20 }, { xPct: 0.65, yBelow: 0.07, scale: 0.16 }],
-  stool:      [{ xPct: 0.58, yBelow: 0.08, scale: 0.11 }, { xPct: 0.42, yBelow: 0.08, scale: 0.10 }],
-  // Tall items: base is at floor but center appears higher — small yBelow keeps them correctly anchored
-  lamp:       [{ xPct: 0.78, yBelow: 0.05, scale: 0.14 }, { xPct: 0.15, yBelow: 0.05, scale: 0.13 }],
-  cabinet:    [{ xPct: 0.08, yBelow: 0.05, scale: 0.24 }, { xPct: 0.82, yBelow: 0.05, scale: 0.23 }],
-  // Small decorations: on floor or low surface
-  decoration: [{ xPct: 0.68, yBelow: 0.07, scale: 0.08 }, { xPct: 0.28, yBelow: 0.07, scale: 0.07 }],
-  rug:        [{ xPct: 0.40, yBelow: 0.12, scale: 0.50 }, { xPct: 0.50, yBelow: 0.14, scale: 0.55 }],
-  bed:        [{ xPct: 0.38, yBelow: 0.10, scale: 0.30 }, { xPct: 0.52, yBelow: 0.10, scale: 0.33 }],
-  // Wall-mounted: center above floor line
-  mirror:     [{ xPct: 0.12, yBelow: -0.16, scale: 0.16 }, { xPct: 0.78, yBelow: -0.18, scale: 0.14 }],
+// Reference room size for perspective-scale calculation.
+// Using 560cm (5.6m) as effective room width makes the perspective scale
+// match a typical room photo taken from one end — furniture occupies a
+// realistic fraction of the canvas rather than filling it edge-to-edge.
+const ROOM_W_CM = 560;
+const ROOM_H_CM = 280;   // typical ceiling height in cm
+
+// perspScale matches PreviewCanvas — items lower = bigger (closer to camera)
+function perspScale(cy: number): number {
+  return 0.55 + (cy / CANVAS_H) * 0.70;
+}
+
+// Per-category max rendered width (px) — keeps items from overwhelming the canvas
+const MAX_FW: Record<string, number> = {
+  sofa:       280, loveseat:  220, chair:  155,
+  table:      230, stool:     110, bed:    310,
+  cabinet:    220, rug:       420, mirror: 150,
+  decoration:  65,
+  'floor-lamp': 72, 'table-lamp': 62, pendant: 100,
 };
 
-function getInstantPlacement(category: string, count: number, floorPct: number) {
-  const rules = INSTANT_RULES[category] ?? [{ xPct: 0.38, yBelow: 0.08, scale: 0.20 }];
-  const rule  = rules[count % rules.length];
-  // Place center = floorLine + yBelow, clamped so item stays within canvas
-  const cy = Math.max(60, Math.min(CANVAS_H - 40, Math.round((floorPct + rule.yBelow) * CANVAS_H)));
-  return { x: Math.round(rule.xPct * CANVAS_W), y: cy, scale: rule.scale };
+// Default x-positions (fraction of CANVAS_W) when AI zones are not available
+const DEFAULT_X: Record<string, number[]> = {
+  sofa:        [0.22, 0.60],
+  loveseat:    [0.25, 0.62],
+  chair:       [0.72, 0.18, 0.82],
+  table:       [0.38, 0.65],
+  stool:       [0.58, 0.42],
+  'floor-lamp':[0.82, 0.12],
+  'table-lamp':[0.78, 0.14],
+  pendant:     [0.48, 0.32],
+  cabinet:     [0.07, 0.84],
+  bed:         [0.38, 0.52],
+  decoration:  [0.68, 0.28],
+  rug:         [0.42, 0.50],
+  mirror:      [0.12, 0.80],
+};
+
+interface PlacementParams {
+  naturalW:      number;
+  naturalH:      number;
+  productWidthCm:  number;  // from DB, cm
+  productHeightCm: number;  // from DB, cm
+  aiZones?: Record<string, { x: number; y: number }>;
+}
+
+function getInstantPlacement(
+  category: string,
+  count: number,
+  floorPct: number,
+  params: PlacementParams,
+) {
+  const { naturalW, naturalH, productWidthCm, productHeightCm, aiZones } = params;
+  const floorY  = floorPct * CANVAS_H;
+  const aspect  = naturalH / Math.max(naturalW, 1);  // h/w ratio
+
+  // ── Pendant / ceiling lamps: hang from top ──────────────────────────────────
+  if (category === 'pendant') {
+    const fw  = Math.min(130, CANVAS_W * 0.11);
+    const fh  = fw * aspect;
+    const cx  = Math.round((aiZones?.lamp?.x ?? (DEFAULT_X.pendant?.[count % 2] ?? 0.48)) * CANVAS_W);
+    const cy  = Math.round(fh / 2 + 20);   // hang near ceiling
+    const ps  = perspScale(cy);
+    const scale = fw / (CANVAS_W * ps);
+    return { x: cx, y: Math.max(30, cy), scale };
+  }
+
+  // ── Mirror / wall art: float above floor ────────────────────────────────────
+  if (category === 'mirror') {
+    const xArr = DEFAULT_X.mirror ?? [0.12, 0.80];
+    const cx   = Math.round(xArr[count % xArr.length] * CANVAS_W);
+    const cy   = Math.round(floorY * 0.55);
+    const ps   = perspScale(cy);
+    const fw   = Math.min(180, CANVAS_W * 0.14 * ps);
+    const scale = fw / (CANVAS_W * ps);
+    return { x: cx, y: cy, scale };
+  }
+
+  // ── Rug: flat on floor, larger ───────────────────────────────────────────────
+  if (category === 'rug') {
+    const fw    = Math.min(500, CANVAS_W * 0.50);
+    const ps    = perspScale(floorY);
+    const scale = fw / (CANVAS_W * ps);
+    const cx    = Math.round((aiZones?.rug?.x ?? 0.42) * CANVAS_W);
+    const cy    = Math.round(floorY + 30);
+    return { x: cx, y: cy, scale };
+  }
+
+  // ── All floor-standing items ─────────────────────────────────────────────────
+
+  // Determine target rendered width using real-world dimensions
+  const wCm = productWidthCm  > 0 ? productWidthCm  : 80;
+  const hCm = productHeightCm > 0 ? productHeightCm : 90;
+
+  let fw: number;
+
+  if (aspect > 2.2) {
+    // Tall item (floor lamp, wardrobe, bookcase): scale by height relative to room
+    const roomHpx    = floorY * 0.92;          // approx ceiling-to-floor in px
+    const targetFh   = Math.min(
+      (hCm / ROOM_H_CM) * roomHpx,
+      roomHpx * 0.52,                          // cap at 52% of room height
+    );
+    fw = Math.max(30, targetFh / aspect);
+  } else {
+    // Wide / standard item: scale by width relative to room
+    const ps    = perspScale(floorY);
+    fw = Math.min(
+      (wCm / ROOM_W_CM) * CANVAS_W / ps,
+      MAX_FW[category] ?? 260,
+    );
+  }
+
+  // Clamp to category maximum
+  fw = Math.min(fw, MAX_FW[category] ?? 260);
+  const fh    = fw * aspect;
+  const ps    = perspScale(floorY);
+  const scale = fw / (CANVAS_W * ps);
+
+  // ── Y: bottom-anchor — base sits exactly on the floor at its depth ──────────
+  //   AI zone gives the floor Y at that depth; fall back to detected floorPct
+  const aiKey = category === 'floor-lamp' || category === 'table-lamp' ? 'lamp' : category;
+  const zoneY = aiZones?.[aiKey]?.y;
+  const baseY = zoneY ? zoneY * CANVAS_H : floorY;
+  const cy    = Math.max(fh / 2 + 10, Math.min(CANVAS_H - 20, Math.round(baseY - fh / 2)));
+
+  // ── X: AI placement zone preferred ─────────────────────────────────────────
+  const zoneX   = aiZones?.[aiKey]?.x;
+  const xFallback = (DEFAULT_X[category] ?? [0.38, 0.60])[count % (DEFAULT_X[category]?.length ?? 2)];
+  const cx      = Math.round((zoneX ?? xFallback) * CANVAS_W);
+
+  // For second+ items of the same category, offset so they don't stack
+  const offsetX = count > 0 ? (count % 2 === 0 ? -120 : 120) : 0;
+  const finalCx = Math.max(50, Math.min(CANVAS_W - 50, cx + offsetX));
+
+  return { x: finalCx, y: Math.max(Math.round(fh / 2 + 10), cy), scale };
 }
 
 async function detectFloorPct(previewUrl: string): Promise<number> {
@@ -175,11 +293,15 @@ export const AIDesigner: React.FC = () => {
   const [analysis,     setAnalysis]     = useState<RoomAnalysis | null>(null);
   const [isAnalyzing,  setIsAnalyzing]  = useState(false);
   const [floorPct,     setFloorPct]     = useState(0.65);
+  const [aiZones,      setAiZones]      = useState<Record<string, { x: number; y: number }> | undefined>(undefined);
   const [insights,     setInsights]     = useState<RoomInsights | null>(null);
   const [insightsVisible, setInsightsVisible] = useState(false);
 
   const [items,      setItems]      = useState<SmartItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // AI placement in-progress
+  const [isPlacing, setIsPlacing] = useState(false);
 
   // Per-item BG removal (auto on add)
   const [processingBgFor, setProcessingBgFor] = useState<Set<string>>(new Set());
@@ -215,6 +337,11 @@ export const AIDesigner: React.FC = () => {
       const a = await analyzeRoom(cloudUrl);
       setAnalysis(a);
       setInsights(extractInsights(a));
+      // Use AI geometry for placement and floor detection
+      if (a.geometry) {
+        setFloorPct(a.geometry.floorLineY);
+        setAiZones(a.geometry.placementZones);
+      }
       // Stagger the insight chips reveal
       setTimeout(() => setInsightsVisible(true), 200);
       toast.success('Room analyzed!');
@@ -250,17 +377,62 @@ export const AIDesigner: React.FC = () => {
   // ── Add product ──────────────────────────────────────────────────────────────
   const handleAddProduct = useCallback(async (product: Product) => {
     if (!roomPreview) { toast.error('Upload a room photo first'); return; }
+    if (isPlacing) { toast.info('AI is placing the previous item, please wait…'); return; }
 
-    const displayCat = getDisplayCategory(product.productName, product.category);
-    const sameCount  = items.filter(i =>
-      getDisplayCategory(i.productName, (i as any).category ?? '') === displayCat,
-    ).length;
+    setIsPlacing(true);
 
-    const instant = getInstantPlacement(displayCat, sameCount, floorPct);
+    // Prefetch image dims in parallel with AI placement call
+    const dimsPromise = (async () => {
+      const cached = imgDimCache.current.get(product.image);
+      if (cached) return cached;
+      const d = await measureImage(product.image);
+      imgDimCache.current.set(product.image, d);
+      return d;
+    })();
 
-    // Prefetch image dims (cached for future renders)
-    const dims = imgDimCache.current.get(product.image) ?? await measureImage(product.image);
-    imgDimCache.current.set(product.image, dims);
+    // Build context of already-placed items for the AI
+    const existingContext = items.map(i => ({
+      cx:          i.cx,
+      cy:          i.cy,
+      scale:       i.scale,
+      category:    getDisplayCategory(i.productName, (i as any).category ?? ''),
+      productName: i.productName,
+    }));
+
+    // Call AI placement — sends room photo + existing items → returns cx, cy, scale
+    let placement: { cx: number; cy: number; scale: number } | null = null;
+    try {
+      if (roomCloudUrl) {
+        placement = await placeItem(
+          roomCloudUrl,
+          product.productName,
+          getDisplayCategory(product.productName, product.category),
+          product.width  ?? 80,
+          product.height ?? 90,
+          floorPct,
+          existingContext,
+        );
+      }
+    } catch {
+      // Fall back to client-side placement below
+    }
+
+    // Client-side fallback if AI placement failed or no cloud URL
+    const dims = await dimsPromise;
+    if (!placement) {
+      const displayCat = getDisplayCategory(product.productName, product.category);
+      const sameCount  = items.filter(i =>
+        getDisplayCategory(i.productName, (i as any).category ?? '') === displayCat,
+      ).length;
+      const instant = getInstantPlacement(displayCat, sameCount, floorPct, {
+        naturalW:        dims.w,
+        naturalH:        dims.h,
+        productWidthCm:  product.width  ?? 80,
+        productHeightCm: product.height ?? 90,
+        aiZones,
+      });
+      placement = { cx: instant.x, cy: instant.y, scale: instant.scale };
+    }
 
     const domColor = await sampleDominantColor(product.image);
 
@@ -270,42 +442,42 @@ export const AIDesigner: React.FC = () => {
       productName:  product.productName,
       imageUrl:     product.image,
       sourceUrl:    product.image,
-      cx: instant.x,
-      cy: instant.y,
-      scale: 0,               // starts at 0 for animation
-      scaleTarget: instant.scale,
-      rotation: 0,
-      zIndex: _zIdx++,
+      cx:           placement.cx,
+      cy:           placement.cy,
+      scale:        0,               // starts at 0 for animation
+      scaleTarget:  placement.scale,
+      rotation:     0,
+      zIndex:       _zIdx++,
       needsCleanup: true,
       dominantColor: domColor,
-      naturalW: dims.w,
-      naturalH: dims.h,
+      naturalW:     dims.w,
+      naturalH:     dims.h,
     };
 
     setItems(prev => [...prev, newItem]);
     setSelectedId(newItem.id);
+    setIsPlacing(false);
 
-    // Scale-in animation
-    animateScaleIn(newItem.id, instant.scale);
+    animateScaleIn(newItem.id, placement.scale);
 
-    // Auto BG removal immediately on add
+    // Auto BG removal
     setProcessingBgFor(prev => new Set(prev).add(newItem.id));
     removeBackground(product.image)
       .then(cleanUrl => {
-        measureImage(cleanUrl).then(dims => {
-          imgDimCache.current.set(cleanUrl, dims);
+        measureImage(cleanUrl).then(cd => {
+          imgDimCache.current.set(cleanUrl, cd);
           setItems(prev => prev.map(i =>
             i.id === newItem.id
-              ? { ...i, imageUrl: cleanUrl, needsCleanup: false, naturalW: dims.w, naturalH: dims.h }
+              ? { ...i, imageUrl: cleanUrl, needsCleanup: false, naturalW: cd.w, naturalH: cd.h }
               : i,
           ));
         });
       })
-      .catch(() => { /* leave original image */ })
+      .catch(() => { /* leave original */ })
       .finally(() => setProcessingBgFor(prev => { const s = new Set(prev); s.delete(newItem.id); return s; }));
 
-    toast.success(`${product.productName} added to room!`);
-  }, [roomPreview, items, roomCloudUrl, floorPct, animateScaleIn]);
+    toast.success(`${product.productName} placed by AI!`);
+  }, [roomPreview, roomCloudUrl, items, floorPct, aiZones, animateScaleIn, isPlacing]);
 
   // ── Clean All Backgrounds (bulk fallback for items that failed auto-removal) ────
   const handleCleanAll = useCallback(async () => {
@@ -431,7 +603,7 @@ export const AIDesigner: React.FC = () => {
   // ── Pixel dims of selected item ───────────────────────────────────────────────
   const selDims = selectedItem
     ? (() => {
-        const ps = 0.78 + (selectedItem.cy / CANVAS_H) * 0.44;
+        const ps = perspScale(selectedItem.cy);
         const fw = Math.round(CANVAS_W * selectedItem.scale * ps);
         const fh = selectedItem.naturalW > 0
           ? Math.round((selectedItem.naturalH / selectedItem.naturalW) * fw)
@@ -489,7 +661,13 @@ export const AIDesigner: React.FC = () => {
             {isAnalyzing && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-orange-600 bg-orange-50 rounded-lg border border-orange-100">
                 <span className="w-3 h-3 rounded-full border-2 border-orange-300 border-t-orange-600 animate-spin flex-shrink-0" />
-                Analyzing…
+                Analyzing room…
+              </div>
+            )}
+            {isPlacing && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-violet-700 bg-violet-50 rounded-lg border border-violet-200">
+                <span className="w-3 h-3 rounded-full border-2 border-violet-300 border-t-violet-600 animate-spin flex-shrink-0" />
+                AI placing…
               </div>
             )}
 

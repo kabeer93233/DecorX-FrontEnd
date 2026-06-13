@@ -8,6 +8,8 @@ interface Product {
   category: string;
   price: number;
   image: string;
+  width?: number;   // real-world cm from DB
+  height?: number;  // real-world cm from DB
 }
 
 interface Props {
@@ -16,6 +18,8 @@ interface Props {
   suggestedCategories?: string[];
   addMode?: boolean;
 }
+
+export type { Product as FurnitureProduct };
 
 const AI_PICKS_LIMIT = 6;
 

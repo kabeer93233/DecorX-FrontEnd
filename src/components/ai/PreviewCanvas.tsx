@@ -115,7 +115,8 @@ export const PreviewCanvas: React.FC<Props> = ({
     return img?.complete && img.naturalWidth ? img : null;
   }
 
-  function perspScale(cy: number) { return 0.78 + (cy / CANVAS_H) * 0.44; }
+  // Must match AIDesigner.tsx perspScale so placement and rendering are in sync
+  function perspScale(cy: number) { return 0.55 + (cy / CANVAS_H) * 0.70; }
 
   // Scale is relative to CANVAS_W so changing imageUrl (BG removal) never changes rendered size
   function itemDims(item: PlacedItem) {
@@ -217,7 +218,10 @@ export const PreviewCanvas: React.FC<Props> = ({
 
       const { fw, fh } = itemDims(item);
 
-      drawFloorShadow(ctx, item.cx, item.cy, fw, fh);
+      // No floor shadow for ceiling-hung items
+      const isPendant = item.productName?.toLowerCase().includes('pendant')
+        || item.productName?.toLowerCase().includes('chandelier');
+      if (!isPendant) drawFloorShadow(ctx, item.cx, item.cy, fw, fh);
 
       // Room-adaptive brightness
       const roomBright   = roomImgRef.current ? getRoomBrightAt(item.cx, item.cy) : 0.65;
