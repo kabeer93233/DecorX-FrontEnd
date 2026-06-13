@@ -6,7 +6,7 @@ import { RoomUploader } from '../components/ai/RoomUploader';
 import { RoomInsightsPanel } from '../components/ai/RoomInsightsPanel';
 import { PreviewCanvas, PlacedItem, CANVAS_W, CANVAS_H } from '../components/ai/PreviewCanvas';
 import { FurnitureSelector } from '../components/ai/FurnitureSelector';
-import { analyzeRoom, removeBackground } from '../services/aiService';
+import { analyzeRoom, removeBackground, warmupBgRemoval } from '../services/aiService';
 import { RoomAnalysis } from '../types/ai';
 import { useShop } from '../context/ShopContext';
 
@@ -207,6 +207,9 @@ export const AIDesigner: React.FC = () => {
     setInsights(null);
     setInsightsVisible(false);
     detectFloorPct(previewUrl).then(p => setFloorPct(p));
+    // Spawn the BG worker now — it pre-imports the WASM library while the room
+    // analysis runs, so the first product add finds the model already cached.
+    warmupBgRemoval();
     setIsAnalyzing(true);
     try {
       const a = await analyzeRoom(cloudUrl);
@@ -532,6 +535,7 @@ export const AIDesigner: React.FC = () => {
         <aside className="w-72 flex-shrink-0 flex flex-col gap-3 overflow-y-auto pb-2" style={{ scrollbarWidth: 'none' }}>
           <RoomUploader onImageReady={handleRoomReady} currentImage={roomPreview} />
           <RoomInsightsPanel isAnalyzing={isAnalyzing} analysis={analysis} />
+
           <FurnitureSelector
             selectedProductId={null}
             onSelect={handleAddProduct as any}

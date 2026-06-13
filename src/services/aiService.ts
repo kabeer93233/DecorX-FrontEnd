@@ -122,87 +122,59 @@ export async function analyzeRoom(roomImageUrl: string): Promise<RoomAnalysis> {
   return localResult;
 }
 
-// Zero-out semi-transparent pixels that WASM BG removal leaves as a background haze
-async function cleanAlphaHaze(dataUrl: string, threshold = 72): Promise<string> {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => {
-      const c    = document.createElement('canvas');
-      c.width    = img.naturalWidth;
-      c.height   = img.naturalHeight;
-      const ctx  = c.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
-      const id   = ctx.getImageData(0, 0, c.width, c.height);
-      const data = id.data;
-      for (let i = 3; i < data.length; i += 4) {
-        if (data[i] < threshold) data[i] = 0;
-      }
-      ctx.putImageData(id, 0, 0);
-      resolve(c.toDataURL('image/png'));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-}
+// ── Background removal — fully off-thread via Web Worker ─────────────────────
+// The worker (bgRemoval.worker.ts) runs resize + WASM inference + crop + haze
+// cleanup entirely off the main thread using OffscreenCanvas + createImageBitmap.
+// The main thread only sends a URL and receives back an ArrayBuffer (zero-copy).
 
-// Crop a transparent-background image to the tightest bounding box of its content
-async function autoCropTransparent(objectUrl: string): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width  = img.naturalWidth;
-      c.height = img.naturalHeight;
-      const ctx = c.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
-      const { data } = ctx.getImageData(0, 0, c.width, c.height);
-      let x0 = c.width, x1 = 0, y0 = c.height, y1 = 0;
-      for (let y = 0; y < c.height; y++) {
-        for (let x = 0; x < c.width; x++) {
-          if (data[(y * c.width + x) * 4 + 3] > 18) {
-            if (x < x0) x0 = x; if (x > x1) x1 = x;
-            if (y < y0) y0 = y; if (y > y1) y1 = y;
-          }
-        }
-      }
-      if (x1 <= x0 || y1 <= y0) { resolve(objectUrl); return; }
-      const pad = 8;
-      const cw = Math.min(c.width,  x1 - x0 + pad * 2);
-      const ch = Math.min(c.height, y1 - y0 + pad * 2);
-      const out = document.createElement('canvas');
-      out.width = cw; out.height = ch;
-      out.getContext('2d')!.drawImage(c, x0 - pad, y0 - pad, cw, ch, 0, 0, cw, ch);
-      resolve(out.toDataURL('image/png'));
-    };
-    img.onerror = () => resolve(objectUrl);
-    img.src = objectUrl;
-  });
-}
+type BgJob = {
+  resolve:    (url: string) => void;
+  reject:     (err: Error)  => void;
+  onProgress?: (pct: number) => void;
+};
 
-// Use Gemini to crop original image to product bounds, then apply after bg removal
-async function geminiCropImage(
-  imageUrl: string,
-  box: { x1: number; y1: number; x2: number; y2: number },
-): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const pad = 0.02;
-      const x1 = Math.max(0, (box.x1 - pad) * img.naturalWidth);
-      const y1 = Math.max(0, (box.y1 - pad) * img.naturalHeight);
-      const x2 = Math.min(img.naturalWidth,  (box.x2 + pad) * img.naturalWidth);
-      const y2 = Math.min(img.naturalHeight, (box.y2 + pad) * img.naturalHeight);
-      const cw = x2 - x1, ch = y2 - y1;
-      if (cw < 20 || ch < 20) { resolve(imageUrl); return; }
-      const out = document.createElement('canvas');
-      out.width = cw; out.height = ch;
-      out.getContext('2d')!.drawImage(img, x1, y1, cw, ch, 0, 0, cw, ch);
-      resolve(out.toDataURL('image/png'));
-    };
-    img.onerror = () => resolve(imageUrl);
-    img.src = imageUrl;
-  });
+let _bgWorker:    Worker | null            = null;
+const _bgJobs:    Map<string, BgJob>       = new Map();
+
+function getBgWorker(): Worker {
+  if (_bgWorker) return _bgWorker;
+
+  _bgWorker = new Worker(
+    new URL('../workers/bgRemoval.worker.ts', import.meta.url),
+    { type: 'module' },
+  );
+
+  _bgWorker.onmessage = (e: MessageEvent) => {
+    const { id, progress, buffer, mimeType, error } = e.data;
+    const job = _bgJobs.get(id);
+    if (!job) return;
+
+    if (error) {
+      _bgJobs.delete(id);
+      job.reject(new Error(error));
+      return;
+    }
+
+    if (progress !== undefined) {
+      job.onProgress?.(progress as number);
+    }
+
+    if (buffer !== undefined) {
+      _bgJobs.delete(id);
+      const blob      = new Blob([buffer as ArrayBuffer], { type: mimeType ?? 'image/png' });
+      const objectUrl = URL.createObjectURL(blob);
+      job.resolve(objectUrl);
+    }
+  };
+
+  _bgWorker.onerror = (e) => {
+    const msg = e.message ?? 'Worker error';
+    _bgJobs.forEach(job => job.reject(new Error(msg)));
+    _bgJobs.clear();
+    _bgWorker = null; // recreate on next call
+  };
+
+  return _bgWorker;
 }
 
 export async function removeBackground(
@@ -227,18 +199,14 @@ export async function removeBackground(
     },
     model: 'isnet',
   });
+}
 
-  // Safety timeout — never hang silently
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('BG removal timed out')), 120_000),
-  );
-
-  const blob      = await Promise.race([wasmPromise, timeout]);
-  const objectUrl = URL.createObjectURL(blob as Blob);
-  const cropped   = await autoCropTransparent(objectUrl);
-  const cleaned   = await cleanAlphaHaze(cropped);
-  if (onProgress) onProgress(100);
-  return cleaned;
+// Spawns the worker immediately — the worker's top-level import of
+// @imgly/background-removal triggers WASM compilation + IndexedDB model caching
+// while the user is still reading the room analysis, so the first product add
+// finds everything already warm.
+export function warmupBgRemoval(): void {
+  try { getBgWorker(); } catch { /* ignore — warmup is best-effort */ }
 }
 
 export async function getMyAiDesigns(): Promise<AiDesignRecord[]> {
