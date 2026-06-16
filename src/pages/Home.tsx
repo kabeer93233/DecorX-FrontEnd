@@ -14,10 +14,10 @@ import custom_axios from '../axios/axios';
 
 // ─── ID Config ────────────────────────────────────────────────────────────────
 
-const HERO_IDS      = ['381', '424', '354'];
-const GALLERY_IDS   = ['388', '365', '421'];
-const CATEGORY_IDS  = ['390', '357', '424', '437', '334'];
-const POPULAR_POOL  = ['381', '424', '354', '388', '365', '421', '390', '357', '437', '334'];
+const HERO_IDS      = ['474', '515', '546'];
+const GALLERY_IDS   = ['473', '523', '511']; 
+const CATEGORY_IDS  = ['472', '541', '558', '480'];
+const POPULAR_POOL  = ['480', '515', '490', '522'];
 
 const GALLERY_LABELS: Record<string, string> = {
   '388': 'Table',

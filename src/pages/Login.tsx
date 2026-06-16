@@ -39,11 +39,9 @@ export const Login = () => {
           response.data.user.role,
         );
 
-        storage.setItem(
+        localStorage.setItem(
           "isEmailVerified",
-          String(
-            response.data.user.isEmailVerified
-          ),
+          String(response.data.user.isEmailVerified),
         );
 
         storage.setItem(
