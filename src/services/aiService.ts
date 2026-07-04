@@ -177,27 +177,14 @@ function getBgWorker(): Worker {
   return _bgWorker;
 }
 
-export async function removeBackground(
+export function removeBackground(
   imageUrl: string,
   onProgress?: (pct: number) => void,
 ): Promise<string> {
-  // WASM browser-side BG removal — 100% free, no API key needed
-  // Fetch as Blob in main thread to avoid CORS issues inside the WASM worker
-  let source: Blob | string = imageUrl;
-  try {
-    const fetchRes = await fetch(imageUrl, { mode: 'cors' });
-    if (fetchRes.ok) source = await fetchRes.blob();
-  } catch { /* use URL directly */ }
-
-  if (onProgress) onProgress(10);
-
-  const { removeBackground: removeBg } = await import('@imgly/background-removal');
-
-  const wasmPromise = removeBg(source, {
-    progress: (_key: string, current: number, total: number) => {
-      if (onProgress && total > 0) onProgress(10 + Math.round((current / total) * 85));
-    },
-    model: 'isnet',
+  return new Promise<string>((resolve, reject) => {
+    const id = `bg-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    _bgJobs.set(id, { resolve, reject, onProgress });
+    getBgWorker().postMessage({ id, imageUrl });
   });
 }
 
@@ -207,6 +194,84 @@ export async function removeBackground(
 // finds everything already warm.
 export function warmupBgRemoval(): void {
   try { getBgWorker(); } catch { /* ignore — warmup is best-effort */ }
+}
+
+export interface RoomItemForDesign {
+  id: string;
+  productName: string;
+  category: string;
+  widthCm: number;
+  heightCm: number;
+}
+
+export interface RedesignResult {
+  placements: Array<{
+    id: string;
+    /** horizontal center as fraction of canvas width (0–1) */
+    cx_pct: number;
+    /** where item's feet/base sit as fraction of canvas height (0–1) */
+    foot_y_pct: number;
+  }>;
+  designTheme: string;
+}
+
+/**
+ * Ask the AI to arrange ALL furniture in the room as an expert interior designer.
+ * Returns new cx/cy for every item. Scale is always computed client-side.
+ */
+export async function redesignRoom(
+  roomImageUrl: string,
+  floorLineY: number,
+  items: RoomItemForDesign[],
+): Promise<RedesignResult> {
+  const res = await custom_axios.post('/ai-preview/redesign-room', {
+    roomImageUrl,
+    floorLineY,
+    items,
+  });
+  return res.data.data as RedesignResult;
+}
+
+export interface PlacedItemContext {
+  cx: number;
+  cy: number;
+  scale: number;
+  category: string;
+  productName: string;
+}
+
+export interface PlaceItemResult {
+  cx: number;
+  cy: number;
+  /** scale is NOT returned by AI — frontend computes it from product dimensions */
+  scale?: number;
+  reason: string;
+}
+
+/**
+ * Ask the AI to calculate the correct position + scale for a new item.
+ * The AI sees the room photo and the list of already-placed items so it can
+ * avoid overlap and size the piece correctly relative to the actual room.
+ */
+export async function placeItem(
+  roomImageUrl: string,
+  productName: string,
+  productCategory: string,
+  productWidthCm: number,
+  productHeightCm: number,
+  floorLineY: number,
+  existingItems: PlacedItemContext[],
+): Promise<PlaceItemResult> {
+  const res = await custom_axios.post('/ai-preview/place-item', {
+    roomImageUrl,
+    productName,
+    productCategory,
+    productWidthCm,
+    productHeightCm,
+    floorLineY,
+    existingItems,
+  });
+  return res.data.data as PlaceItemResult;
 }
 
 export async function getMyAiDesigns(): Promise<AiDesignRecord[]> {

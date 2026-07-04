@@ -1,3 +1,9 @@
+export interface RoomGeometry {
+  floorLineY: number;
+  vanishingPoint: { x: number; y: number };
+  placementZones: Record<string, { x: number; y: number }>;
+}
+
 export interface RoomAnalysis {
   roomType: string;
   style: string;
@@ -9,6 +15,7 @@ export interface RoomAnalysis {
   reason: string;
   wallHexColor?: string;
   floorHexColor?: string;
+  geometry?: RoomGeometry;
 }
 
 export interface PlacementSuggestion2d {
