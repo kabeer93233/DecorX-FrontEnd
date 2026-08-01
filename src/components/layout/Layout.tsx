@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
 import { Toaster } from 'sonner';
+import { ChatWidget } from '../chat/ChatWidget';
 
 export const Layout = ({ children }: { children: ReactNode }) => {
   return (
@@ -11,6 +12,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
         {children}
       </main>
       <Footer />
+      <ChatWidget />
       <Toaster position="bottom-right" richColors />
     </div>
   );

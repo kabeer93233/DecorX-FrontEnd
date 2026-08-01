@@ -38,6 +38,14 @@ export const ProductsManagement = () => {
     getProducts();
   }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail === 'products') getProducts();
+    };
+    window.addEventListener('decorx-refresh', handler);
+    return () => window.removeEventListener('decorx-refresh', handler);
+  }, []);
+
   const categories = [
     'all',
     ...new Set(products.map((p) => p.category)),
