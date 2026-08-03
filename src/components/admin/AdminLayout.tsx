@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Package, ShoppingCart, Users, Plus, Menu, X, LogOut } from 'lucide-react';
+import { ChatWidget } from '../chat/ChatWidget';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -92,6 +93,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
         />
       )}
+
+      <ChatWidget />
     </div>
   );
 };

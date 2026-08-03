@@ -95,6 +95,14 @@ export const UsersManagement = () => {
 
   }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail === 'users') fetchUsers();
+    };
+    window.addEventListener('decorx-refresh', handler);
+    return () => window.removeEventListener('decorx-refresh', handler);
+  }, []);
+
   // FILTER USERS
 
   const filteredUsers =

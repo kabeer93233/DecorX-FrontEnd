@@ -1,5 +1,6 @@
 import React from 'react';
-import { CreditCard, DollarSign, CheckCircle } from 'lucide-react';
+import { CreditCard, DollarSign, CheckCircle, Lock } from 'lucide-react';
+import { CardElement } from '@stripe/react-stripe-js';
 
 interface PaymentSectionProps {
   selectedMethod: 'cod' | 'card';
@@ -37,7 +38,7 @@ export const PaymentSection: React.FC<PaymentSectionProps> = ({
                 <CheckCircle className="h-4 w-4 text-white fill-current" />
               )}
             </div>
-            
+
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <DollarSign className="h-6 w-6 text-orange-500" />
@@ -69,7 +70,7 @@ export const PaymentSection: React.FC<PaymentSectionProps> = ({
                 <CheckCircle className="h-4 w-4 text-white fill-current" />
               )}
             </div>
-            
+
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <CreditCard className="h-6 w-6 text-orange-500" />
@@ -78,31 +79,37 @@ export const PaymentSection: React.FC<PaymentSectionProps> = ({
               <p className="text-sm text-stone-600 mb-4">
                 Pay securely with your credit or debit card.
               </p>
-              
+
               {selectedMethod === 'card' && (
-                <div className="space-y-3 mt-4 pt-4 border-t border-stone-200">
-                  <input
-                    type="text"
-                    placeholder="Card Number"
-                    className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      className="px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      className="px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                <div className="mt-4 pt-4 border-t border-stone-200">
+                  <div className="p-4 bg-white rounded-xl border border-stone-200">
+                    <CardElement
+                      options={{
+                        style: {
+                          base: {
+                            fontSize: '16px',
+                            color: '#1c1917',
+                            fontFamily: 'inherit',
+                            '::placeholder': {
+                              color: '#a8a29e',
+                            },
+                            iconColor: '#f97316',
+                          },
+                          invalid: {
+                            color: '#ef4444',
+                            iconColor: '#ef4444',
+                          },
+                        },
+                        hidePostalCode: true,
+                      }}
                     />
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Cardholder Name"
-                    className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
+                  <div className="flex items-center gap-2 mt-3">
+                    <Lock className="h-3.5 w-3.5 text-stone-400" />
+                    <p className="text-xs text-stone-400">
+                      Secured by Stripe. Your card details never touch our servers.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

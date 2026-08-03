@@ -216,6 +216,12 @@ export const AdminDashboard = () => {
 
   }, []);
 
+  useEffect(() => {
+    const handler = () => fetchDashboardData();
+    window.addEventListener('decorx-refresh', handler);
+    return () => window.removeEventListener('decorx-refresh', handler);
+  }, []);
+
   // ================= TOTAL REVENUE =================
 
   const totalRevenue =

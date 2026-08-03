@@ -28,6 +28,7 @@ import ProtectedRoutes from './ProtectedRoutes';
 import { AdminRoute } from './AdminRoutes';
 import { VerifyEmail } from './VerifyEmail';
 import { EmailVerifiedRoute } from './EmailVerifiedRoute';
+import { ChatProvider } from '../context/ChatContext';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -42,6 +43,7 @@ const App = () => {
   return (
     <Router>
       <ShopProvider>
+        <ChatProvider>
         <ScrollToTop />
         <Routes>
           {/* Customer Routes */}
@@ -246,6 +248,7 @@ const App = () => {
             }
           />
         </Routes>
+        </ChatProvider>
       </ShopProvider>
     </Router>
   );

@@ -86,42 +86,29 @@ export const OrdersManagement =
 
   // FETCH ORDERS
 
+  const fetchOrders = async () => {
+    try {
+      const response = await custom_axios.get('/orders');
+      console.log(response.data);
+      setOrders(response.data);
+    } catch (error) {
+      console.log(error);
+      toast.error('Failed to fetch orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-
-    const fetchOrders =
-    async () => {
-
-      try {
-
-        const response =
-        await custom_axios.get(
-          '/orders'
-        );
-
-        console.log(
-          response.data,
-        );
-
-        setOrders(
-          response.data,
-        );
-
-      } catch (error) {
-
-        console.log(error);
-
-        toast.error(
-          'Failed to fetch orders',
-        );
-
-      } finally {
-
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
+  }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail === 'orders') fetchOrders();
+    };
+    window.addEventListener('decorx-refresh', handler);
+    return () => window.removeEventListener('decorx-refresh', handler);
   }, []);
 
   // FILTER
