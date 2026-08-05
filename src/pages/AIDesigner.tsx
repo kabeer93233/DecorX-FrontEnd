@@ -793,17 +793,17 @@ export const AIDesigner: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             {isAnalyzing && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-orange-600 bg-orange-50 rounded-lg border border-orange-100">
+              <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs text-orange-600 bg-orange-50 rounded-lg border border-orange-100 flex-shrink-0">
                 <span className="w-3 h-3 rounded-full border-2 border-orange-300 border-t-orange-600 animate-spin flex-shrink-0" />
-                Analyzing room…
+                <span className="hidden sm:inline">Analyzing room…</span>
               </div>
             )}
             {isPlacing && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-violet-700 bg-violet-50 rounded-lg border border-violet-200">
+              <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs text-violet-700 bg-violet-50 rounded-lg border border-violet-200 flex-shrink-0">
                 <span className="w-3 h-3 rounded-full border-2 border-violet-300 border-t-violet-600 animate-spin flex-shrink-0" />
-                AI placing…
+                <span className="hidden sm:inline">AI placing…</span>
               </div>
             )}
 
@@ -811,12 +811,12 @@ export const AIDesigner: React.FC = () => {
             {dirtyCount > 0 && !cleaningAll && (
               <button
                 onClick={handleCleanAll}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white rounded-lg transition-all active:scale-95"
+                className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold text-white rounded-lg transition-all active:scale-95 flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 0L4 4m5.121 5.121L7 7"/>
                 </svg>
-                Clean All ({dirtyCount})
+                <span className="hidden sm:inline">Clean All</span> ({dirtyCount})
               </button>
             )}
 
@@ -832,21 +832,21 @@ export const AIDesigner: React.FC = () => {
             )}
 
             <button onClick={handleExport} disabled={items.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-100 rounded-lg transition-colors disabled:opacity-40">
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-stone-600 hover:bg-stone-100 rounded-lg transition-colors disabled:opacity-40 flex-shrink-0">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
               </svg>
-              Export
+              <span className="hidden sm:inline">Export</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* ── Workspace ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 gap-4 p-4 min-h-0">
+      <div className="flex flex-col lg:flex-row flex-1 gap-3 lg:gap-4 p-3 lg:p-4 min-h-0 overflow-y-auto lg:overflow-hidden">
 
-        {/* Left sidebar */}
-        <aside className="w-72 flex-shrink-0 flex flex-col gap-3 overflow-y-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+        {/* Left sidebar — on desktop: fixed left column. On mobile: appears BELOW the canvas */}
+        <aside className="hidden lg:flex w-72 flex-shrink-0 flex-col gap-3 overflow-y-auto pb-2" style={{ scrollbarWidth: 'none' }}>
           <RoomUploader onImageReady={handleRoomReady} currentImage={roomPreview} />
           <RoomInsightsPanel isAnalyzing={isAnalyzing} analysis={analysis} />
 
@@ -858,123 +858,63 @@ export const AIDesigner: React.FC = () => {
           />
         </aside>
 
-        {/* Center: canvas + strips */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0 overflow-y-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+        {/* Center: canvas + strips (+ mobile sidebar below) */}
+        <div className="flex-1 flex flex-col gap-3 min-w-0 lg:overflow-y-auto pb-2 min-h-[300px]" style={{ scrollbarWidth: 'none' }}>
 
-          {/* Canvas area wrapper */}
-          <div className="relative flex-shrink-0">
+          {/* Canvas area wrapper — hidden on mobile until room photo is uploaded */}
+          <div className={`relative flex-shrink-0 ${!roomPreview ? 'hidden lg:block' : ''}`}>
 
-            {/* ── Item properties toolbar (dark pill) ──────────────────────── */}
+            {/* ── Item properties toolbar — desktop overlay ──────────────── */}
             {selectedItem && (
-              <div className="absolute top-2 left-2 right-2 z-30">
+              <div className="hidden lg:block absolute top-2 left-2 right-2 z-30">
                 <div
                   className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-2xl flex-wrap"
                   style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.09)' }}
                 >
-                  {/* Dominant color dot + thumbnail + name */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <div
-                      className="w-3.5 h-3.5 rounded-full border border-white/20 flex-shrink-0"
-                      style={{ background: selectedItem.dominantColor }}
-                      title="Dominant color"
-                    />
+                    <div className="w-3.5 h-3.5 rounded-full border border-white/20 flex-shrink-0" style={{ background: selectedItem.dominantColor }} title="Dominant color" />
                     <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/10 flex-shrink-0">
                       <img src={selectedItem.imageUrl} className="w-full h-full object-contain" alt="" />
                     </div>
                     <div className="flex flex-col leading-tight">
-                      <p className="text-[11px] font-semibold text-white truncate max-w-[100px]">
-                        {selectedItem.productName}
-                      </p>
-                      {selDims && (
-                        <p className="text-[9px] text-white/35 tabular-nums">
-                          {selDims.fw}×{selDims.fh}px
-                        </p>
-                      )}
+                      <p className="text-[11px] font-semibold text-white truncate max-w-[100px]">{selectedItem.productName}</p>
+                      {selDims && <p className="text-[9px] text-white/35 tabular-nums">{selDims.fw}×{selDims.fh}px</p>}
                     </div>
                     {selectedItem.needsCleanup && (
-                      <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/30 flex-shrink-0">
-                        needs cleanup
-                      </span>
+                      <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/30 flex-shrink-0">needs cleanup</span>
                     )}
                   </div>
-
                   <div className="w-px h-5 bg-white/10 flex-shrink-0" />
-
-                  {/* Scale slider */}
                   <div className="flex items-center gap-1.5 flex-1 min-w-[100px]">
                     <svg className="w-3 h-3 text-white/35 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                     </svg>
-                    <input type="range" min="0.05" max="1.0" step="0.01"
-                      value={selectedItem.scale}
-                      onChange={e => updateItem(selectedId!, { scale: +e.target.value })}
-                      className="flex-1 accent-orange-500 cursor-pointer" style={{ height: '3px' }}
-                    />
-                    <span className="text-[10px] text-white/50 w-9 text-right flex-shrink-0 tabular-nums">
-                      {Math.round(selectedItem.scale * 100)}%
-                    </span>
+                    <input type="range" min="0.05" max="1.0" step="0.01" value={selectedItem.scale} onChange={e => updateItem(selectedId!, { scale: +e.target.value })} className="flex-1 accent-orange-500 cursor-pointer" style={{ height: '3px' }} />
+                    <span className="text-[10px] text-white/50 w-9 text-right flex-shrink-0 tabular-nums">{Math.round(selectedItem.scale * 100)}%</span>
                   </div>
-
                   <div className="w-px h-5 bg-white/10 flex-shrink-0" />
-
-                  {/* Rotation */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation - 15 + 360) % 360 })}
-                      className="text-[10px] px-1.5 py-0.5 text-white/45 hover:text-white bg-white/5 hover:bg-white/12 rounded transition-colors">
-                      −15°
-                    </button>
+                    <button onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation - 15 + 360) % 360 })} className="text-[10px] px-1.5 py-0.5 text-white/45 hover:text-white bg-white/5 hover:bg-white/12 rounded transition-colors">−15°</button>
                     <span className="text-[10px] text-white/40 w-6 text-center tabular-nums">{selectedItem.rotation}°</span>
-                    <button
-                      onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation + 15) % 360 })}
-                      className="text-[10px] px-1.5 py-0.5 text-white/45 hover:text-white bg-white/5 hover:bg-white/12 rounded transition-colors">
-                      +15°
-                    </button>
+                    <button onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation + 15) % 360 })} className="text-[10px] px-1.5 py-0.5 text-white/45 hover:text-white bg-white/5 hover:bg-white/12 rounded transition-colors">+15°</button>
                   </div>
-
                   <div className="w-px h-5 bg-white/10 flex-shrink-0" />
-
-                  {/* Layer */}
-                  <button onClick={bringToFront} title="Bring to front"
-                    className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all flex-shrink-0">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 11l7-7 7 7M5 19l7-7 7 7"/>
-                    </svg>
+                  <button onClick={bringToFront} title="Bring to front" className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all flex-shrink-0">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 11l7-7 7 7M5 19l7-7 7 7"/></svg>
                   </button>
-                  <button onClick={sendToBack} title="Send to back"
-                    className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all flex-shrink-0">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 13l-7 7-7-7m14-8l-7 7-7-7"/>
-                    </svg>
+                  <button onClick={sendToBack} title="Send to back" className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all flex-shrink-0">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 13l-7 7-7-7m14-8l-7 7-7-7"/></svg>
                   </button>
-
-                  {/* Duplicate */}
-                  <button onClick={duplicateSelected} title="Duplicate"
-                    className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all flex-shrink-0">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
+                  <button onClick={duplicateSelected} title="Duplicate" className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all flex-shrink-0">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                   </button>
-
                   <div className="flex-1" />
-
-                  {/* Add to cart */}
-                  <button
-                    onClick={() => { addToCart({ ...selectedItem, quantity: 1 } as any); toast.success('Added to cart!'); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-bold rounded-xl transition-all active:scale-95 flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)' }}>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
+                  <button onClick={() => { addToCart({ ...selectedItem, quantity: 1 } as any); toast.success('Added to cart!'); }} className="flex items-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-bold rounded-xl transition-all active:scale-95 flex-shrink-0" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)' }}>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                     Cart
                   </button>
-
-                  {/* Delete */}
-                  <button onClick={deleteSelected} title="Remove"
-                    className="p-1.5 rounded-lg text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+                  <button onClick={deleteSelected} title="Remove" className="p-1.5 rounded-lg text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12"/></svg>
                   </button>
                 </div>
               </div>
@@ -1091,9 +1031,10 @@ export const AIDesigner: React.FC = () => {
                   {/* Hint */}
                   {items.length > 0 && !selectedId && (
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-                      <div className="px-4 py-1.5 rounded-full text-xs text-white/55 whitespace-nowrap"
+                      <div className="px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs text-white/55 whitespace-nowrap"
                         style={{ background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(8px)' }}>
-                        Click to select · Drag to move · Arrow keys to nudge · Del to remove
+                        <span className="sm:hidden">Tap to select · Drag to move</span>
+                        <span className="hidden sm:inline">Click to select · Drag to move · Arrow keys to nudge · Del to remove</span>
                       </div>
                     </div>
                   )}
@@ -1101,6 +1042,55 @@ export const AIDesigner: React.FC = () => {
               }
             />
           </div>
+
+          {/* ── Item properties toolbar — mobile bottom bar ────────────── */}
+          {selectedItem && (
+            <div className="lg:hidden flex-shrink-0 rounded-2xl overflow-hidden" style={{ background: 'rgba(10,10,10,0.95)', border: '1px solid rgba(255,255,255,0.09)' }}>
+              {/* Row 1: Item info + scale */}
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10">
+                <div className="w-3 h-3 rounded-full border border-white/20 flex-shrink-0" style={{ background: selectedItem.dominantColor }} />
+                <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/10 flex-shrink-0">
+                  <img src={selectedItem.imageUrl} className="w-full h-full object-contain" alt="" />
+                </div>
+                <p className="text-[11px] font-semibold text-white truncate flex-1">{selectedItem.productName}</p>
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  <svg className="w-3 h-3 text-white/35 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                  </svg>
+                  <input type="range" min="0.05" max="1.0" step="0.01" value={selectedItem.scale} onChange={e => updateItem(selectedId!, { scale: +e.target.value })} className="flex-1 accent-orange-500 cursor-pointer" style={{ height: '3px' }} />
+                  <span className="text-[10px] text-white/50 w-8 text-right flex-shrink-0 tabular-nums">{Math.round(selectedItem.scale * 100)}%</span>
+                </div>
+              </div>
+              {/* Row 2: Actions */}
+              <div className="flex items-center justify-between px-2 py-2">
+                <div className="flex items-center gap-1">
+                  <button onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation - 15 + 360) % 360 })} className="text-[11px] px-2 py-1.5 text-white/60 active:text-white bg-white/5 active:bg-white/15 rounded-lg">−15°</button>
+                  <span className="text-[10px] text-white/40 w-6 text-center tabular-nums">{selectedItem.rotation}°</span>
+                  <button onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation + 15) % 360 })} className="text-[11px] px-2 py-1.5 text-white/60 active:text-white bg-white/5 active:bg-white/15 rounded-lg">+15°</button>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <button onClick={bringToFront} title="Bring to front" className="p-2 rounded-lg text-white/40 active:text-white active:bg-white/10">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 11l7-7 7 7M5 19l7-7 7 7"/></svg>
+                  </button>
+                  <button onClick={sendToBack} title="Send to back" className="p-2 rounded-lg text-white/40 active:text-white active:bg-white/10">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 13l-7 7-7-7m14-8l-7 7-7-7"/></svg>
+                  </button>
+                  <button onClick={duplicateSelected} title="Duplicate" className="p-2 rounded-lg text-white/40 active:text-white active:bg-white/10">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => { addToCart({ ...selectedItem, quantity: 1 } as any); toast.success('Added to cart!'); }} className="flex items-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-bold rounded-xl active:scale-95 flex-shrink-0" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    Cart
+                  </button>
+                  <button onClick={deleteSelected} title="Remove" className="p-2 rounded-lg text-red-400/60 active:text-red-400 active:bg-red-500/10">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── AI Insight Strip ───────────────────────────────────────────── */}
           {insights && (
@@ -1193,6 +1183,18 @@ export const AIDesigner: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* ── Mobile sidebar controls (below canvas, scroll to access) ── */}
+          <div className="lg:hidden flex flex-col gap-3 flex-shrink-0">
+            <RoomUploader onImageReady={handleRoomReady} currentImage={roomPreview} />
+            <RoomInsightsPanel isAnalyzing={isAnalyzing} analysis={analysis} />
+            <FurnitureSelector
+              selectedProductId={null}
+              onSelect={handleAddProduct as any}
+              suggestedCategories={analysis?.suggestedCategories ?? []}
+              addMode
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -366,7 +366,7 @@ export const PreviewCanvas: React.FC<Props> = ({
       {/* Piece count badge */}
       <div className="absolute top-3 left-3 z-10 pointer-events-none">
         <span className="bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full">
-          {items.length === 0 ? 'Add furniture from the sidebar' : `${items.length} piece${items.length !== 1 ? 's' : ''} placed`}
+          {items.length === 0 ? <><span className="hidden lg:inline">Add furniture from the sidebar</span><span className="lg:hidden">Scroll down to add furniture</span></> : `${items.length} piece${items.length !== 1 ? 's' : ''} placed`}
         </span>
       </div>
 
