@@ -899,6 +899,23 @@ export const AIDesigner: React.FC = () => {
                     <button onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation + 15) % 360 })} className="text-[10px] px-1.5 py-0.5 text-white/45 hover:text-white bg-white/5 hover:bg-white/12 rounded transition-colors">+15°</button>
                   </div>
                   <div className="w-px h-5 bg-white/10 flex-shrink-0" />
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <button onClick={() => handleUpdateItem(selectedId!, { cx: Math.max(30, selectedItem.cx - 10) })} title="Move left" className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div className="flex flex-col gap-0.5">
+                      <button onClick={() => handleUpdateItem(selectedId!, { cy: Math.max(30, selectedItem.cy - 10) })} title="Move up" className="p-1 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7"/></svg>
+                      </button>
+                      <button onClick={() => handleUpdateItem(selectedId!, { cy: Math.min(CANVAS_H - 30, selectedItem.cy + 10) })} title="Move down" className="p-1 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7"/></svg>
+                      </button>
+                    </div>
+                    <button onClick={() => handleUpdateItem(selectedId!, { cx: Math.min(CANVAS_W - 30, selectedItem.cx + 10) })} title="Move right" className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                  </div>
+                  <div className="w-px h-5 bg-white/10 flex-shrink-0" />
                   <button onClick={bringToFront} title="Bring to front" className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/8 transition-all flex-shrink-0">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 11l7-7 7 7M5 19l7-7 7 7"/></svg>
                   </button>
@@ -1067,6 +1084,22 @@ export const AIDesigner: React.FC = () => {
                   <button onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation - 15 + 360) % 360 })} className="text-[11px] px-2 py-1.5 text-white/60 active:text-white bg-white/5 active:bg-white/15 rounded-lg">−15°</button>
                   <span className="text-[10px] text-white/40 w-6 text-center tabular-nums">{selectedItem.rotation}°</span>
                   <button onClick={() => updateItem(selectedId!, { rotation: (selectedItem.rotation + 15) % 360 })} className="text-[11px] px-2 py-1.5 text-white/60 active:text-white bg-white/5 active:bg-white/15 rounded-lg">+15°</button>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <button onClick={() => handleUpdateItem(selectedId!, { cx: Math.max(30, selectedItem.cx - 10) })} title="Move left" className="p-2 rounded-lg text-white/40 active:text-white active:bg-white/10">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7"/></svg>
+                  </button>
+                  <div className="flex flex-col gap-0">
+                    <button onClick={() => handleUpdateItem(selectedId!, { cy: Math.max(30, selectedItem.cy - 10) })} title="Move up" className="p-1 rounded-lg text-white/40 active:text-white active:bg-white/10">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7"/></svg>
+                    </button>
+                    <button onClick={() => handleUpdateItem(selectedId!, { cy: Math.min(CANVAS_H - 30, selectedItem.cy + 10) })} title="Move down" className="p-1 rounded-lg text-white/40 active:text-white active:bg-white/10">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                  </div>
+                  <button onClick={() => handleUpdateItem(selectedId!, { cx: Math.min(CANVAS_W - 30, selectedItem.cx + 10) })} title="Move right" className="p-2 rounded-lg text-white/40 active:text-white active:bg-white/10">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7"/></svg>
+                  </button>
                 </div>
                 <div className="flex items-center gap-0.5">
                   <button onClick={bringToFront} title="Bring to front" className="p-2 rounded-lg text-white/40 active:text-white active:bg-white/10">

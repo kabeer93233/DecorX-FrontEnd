@@ -71,7 +71,14 @@ const CATEGORY_MAP: Record<string, string> = {
   decoration: 'decoration', decorations: 'decoration', decor: 'decoration',
   vase: 'decoration', plant: 'decoration', 'indoor plant': 'decoration',
   cushion: 'decoration', pillow: 'decoration', throw: 'decoration',
-  'wall art': 'decoration', frame: 'decoration',
+  frame: 'decoration',
+
+  // ── Wall decor (placed on walls, above floor line) ──────────────────────────
+  'wall decor': 'mirror', 'wall art': 'mirror', 'wall clock': 'mirror',
+  'wall mirror': 'mirror', 'wall shelf': 'mirror', 'floating shelf': 'mirror',
+  'wall hanging': 'mirror', 'wall sculpture': 'mirror', scenery: 'mirror',
+  'canvas art': 'mirror', 'canvas print': 'mirror', 'wall panel': 'mirror',
+  'macrame': 'mirror', 'tapestry': 'mirror',
 
   // ── Other ────────────────────────────────────────────────────────────────────
   mirror: 'mirror',
