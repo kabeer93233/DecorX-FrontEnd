@@ -160,7 +160,7 @@ export const Home = () => {
                 </Link>
               </div>
 
-              <div className="flex items-center gap-8 md:gap-12 pt-8 border-t border-stone-200/60">
+              <div className="flex items-center gap-6 sm:gap-8 md:gap-12 pt-8 border-t border-stone-200/60 flex-wrap">
                 <div className="flex flex-col">
                   <span className="text-3xl font-bold text-stone-900">500+</span>
                   <span className="text-sm text-stone-500 font-medium">Unique Items</span>
@@ -183,7 +183,7 @@ export const Home = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative flex justify-center items-center h-[500px] w-full"
+              className="relative flex justify-center items-center h-[350px] sm:h-[500px] w-full"
             >
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] bg-white rounded-full shadow-2xl z-0" />
               <motion.div
@@ -271,10 +271,10 @@ export const Home = () => {
       {/* ── Explore Our Gallery ───────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading title="Explore Our Gallery" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {loading
             ? [0, 1, 2].map((i) => (
-                <div key={i} className="h-80 rounded-3xl bg-stone-100 animate-pulse" />
+                <div key={i} className="h-48 sm:h-80 rounded-3xl bg-stone-100 animate-pulse" />
               ))
             : galleryProducts.map((product, idx) => (
                 <Link to="/shop" key={product.id} className="block h-full">
@@ -282,7 +282,7 @@ export const Home = () => {
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="group relative bg-stone-100 rounded-3xl overflow-hidden h-80 cursor-pointer shadow-md hover:shadow-xl transition-all duration-300"
+                    className="group relative bg-stone-100 rounded-3xl overflow-hidden h-48 sm:h-80 cursor-pointer shadow-md hover:shadow-xl transition-all duration-300"
                   >
                     <img
                       src={product.image || FALLBACK_IMG}
@@ -290,8 +290,8 @@ export const Home = () => {
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute bottom-6 left-6 text-white transform transition-transform duration-300 group-hover:translate-y-[-5px]">
-                      <h3 className="text-2xl font-bold mb-2">
+                    <div className="absolute bottom-3 left-3 sm:bottom-6 sm:left-6 text-white transform transition-transform duration-300 group-hover:translate-y-[-5px]">
+                      <h3 className="text-base sm:text-2xl font-bold mb-1 sm:mb-2">
                         {GALLERY_LABELS[String(product.id)] ?? product.category}
                       </h3>
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100 text-sm font-medium text-orange-300">
@@ -362,10 +362,10 @@ export const Home = () => {
             View All <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
           {loading
             ? [0, 1, 2, 3].map((i) => (
-                <div key={i} className="aspect-[4/5] rounded-2xl bg-stone-100 animate-pulse" />
+                <div key={i} className="aspect-square sm:aspect-[4/5] rounded-2xl bg-stone-100 animate-pulse" />
               ))
             : categoryProducts.map((product) => (
                 <Link
@@ -373,7 +373,7 @@ export const Home = () => {
                   key={product.id}
                   className="group relative block"
                 >
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-stone-100 mb-4 shadow-sm group-hover:shadow-xl transition-all duration-500">
+                  <div className="relative aspect-square sm:aspect-[4/5] overflow-hidden rounded-2xl bg-stone-100 mb-2 sm:mb-4 shadow-sm group-hover:shadow-xl transition-all duration-500">
                     <img
                       src={product.image || FALLBACK_IMG}
                       alt={product.productName}
@@ -448,13 +448,13 @@ export const Home = () => {
           <Link to="/shop" className="text-orange-500 font-medium hover:underline mb-12">View All</Link>
         </div>
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="h-72 rounded-2xl bg-stone-100 animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {popularProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

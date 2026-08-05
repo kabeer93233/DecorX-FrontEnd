@@ -52,7 +52,7 @@ export const ProductCard=({
       className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-stone-100 relative"
     >
 
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10 flex flex-col gap-1 sm:gap-2">
 
         {product.isNew&&(
           <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider">
@@ -75,7 +75,7 @@ export const ProductCard=({
 
           toggleWishlist(product);
         }}
-        className={`absolute top-4 right-4 z-10 p-2 rounded-full shadow-md transition-colors ${
+        className={`absolute top-2 right-2 sm:top-4 sm:right-4 z-10 p-1.5 sm:p-2 rounded-full shadow-md transition-colors ${
           isWishlisted
           ?'bg-red-50 text-red-500'
           :'bg-white text-stone-400 hover:text-red-500'
@@ -92,7 +92,7 @@ export const ProductCard=({
 
       </button>
 
-      <div className="relative aspect-[4/5] overflow-hidden bg-stone-50">
+      <div className="relative aspect-square sm:aspect-[4/5] overflow-hidden bg-stone-50">
 
         <img
           src={product.image}
@@ -128,7 +128,7 @@ export const ProductCard=({
 
       </div>
 
-      <div className="p-4">
+      <div className="p-2.5 sm:p-4">
 
         <p className="text-xs text-stone-500 mb-1">
           {product.category}
@@ -136,7 +136,7 @@ export const ProductCard=({
 
         <Link to={`/product/${product.id}`}>
 
-          <h3 className="font-semibold text-stone-900 mb-2 truncate group-hover:text-orange-500 transition-colors">
+          <h3 className="font-semibold text-stone-900 mb-1 sm:mb-2 truncate group-hover:text-orange-500 transition-colors text-sm sm:text-base">
             {product.productName}
           </h3>
 
@@ -146,7 +146,7 @@ export const ProductCard=({
 
           <div className="flex items-center gap-2">
 
-            <span className="font-bold text-stone-900">
+            <span className="font-bold text-stone-900 text-sm sm:text-base">
               ${product.price.toFixed(2)}
             </span>
 

@@ -27,6 +27,7 @@ export const AddProduct = () => {
     'Storage',
     'Lighting',
     'Decor',
+    'Wall Decor',
   ];
 
   const handleChange = (

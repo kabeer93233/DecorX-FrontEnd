@@ -357,6 +357,30 @@ export const PreviewCanvas: React.FC<Props> = ({
 
   const stopDrag = () => { if (dragRef.current) dragRef.current.active = false; };
 
+  // ── Keyboard arrow nudge ──────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const sel = selectedRef.current;
+      if (!sel) return;
+      const STEP = 10;
+      let dx = 0, dy = 0;
+      if (e.key === 'ArrowLeft')  dx = -STEP;
+      if (e.key === 'ArrowRight') dx =  STEP;
+      if (e.key === 'ArrowUp')    dy = -STEP;
+      if (e.key === 'ArrowDown')  dy =  STEP;
+      if (dx === 0 && dy === 0) return;
+      e.preventDefault();
+      const item = itemsRef.current.find(i => i.id === sel);
+      if (!item) return;
+      onUpdateItem(sel, {
+        cx: Math.max(30, Math.min(CANVAS_W - 30, item.cx + dx)),
+        cy: Math.max(30, Math.min(CANVAS_H - 30, item.cy + dy)),
+      });
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onUpdateItem]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
@@ -366,7 +390,7 @@ export const PreviewCanvas: React.FC<Props> = ({
       {/* Piece count badge */}
       <div className="absolute top-3 left-3 z-10 pointer-events-none">
         <span className="bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full">
-          {items.length === 0 ? 'Add furniture from the sidebar' : `${items.length} piece${items.length !== 1 ? 's' : ''} placed`}
+          {items.length === 0 ? <><span className="hidden lg:inline">Add furniture from the sidebar</span><span className="lg:hidden">Scroll down to add furniture</span></> : `${items.length} piece${items.length !== 1 ? 's' : ''} placed`}
         </span>
       </div>
 

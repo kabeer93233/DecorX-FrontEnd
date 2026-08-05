@@ -90,6 +90,7 @@ export const categories: Category[] = [
   { id: '3', name: 'Decoration', image: 'https://images.unsplash.com/photo-1742714684748-5a5a8a21115a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob21lJTIwZGVjb3JhdGlvbiUyMHZhc2UlMjBtaW5pbWFsaXN0JTIwd2hpdGUlMjBiYWNrZ3JvdW5kfGVufDF8fHx8MTc3MDI4ODUwNnww&ixlib=rb-4.1.0&q=80&w=1080' },
   { id: '4', name: 'Stool', image: 'https://images.unsplash.com/photo-1449247709967-d4461a6a6103?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB3b29kZW4lMjBzdG9vbCUyMG1pbmltYWxpc3QlMjB3aGl0ZSUyMGJhY2tncm91bmR8ZW58MXx8fHwxNzcwMjg4NTA2fDA&ixlib=rb-4.1.0&q=80&w=1080' },
   { id: '5', name: 'Sofa', image: 'https://images.unsplash.com/photo-1603192399946-8bbb0703cfc4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBncmV5JTIwc29mYSUyMGxpdmluZyUyMHJvb20lMjBpbnRlcmlvcnxlbnwxfHx8fDE3NzAyODg1MDZ8MA&ixlib=rb-4.1.0&q=80&w=1080' },
+  { id: '6', name: 'Wall Decor', image: 'https://images.unsplash.com/photo-1513519245088-0e12902e35a6?auto=format&fit=crop&q=80&w=1080' },
 ];
 
 export const testimonials: Testimonial[] = [

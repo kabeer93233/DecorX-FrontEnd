@@ -43,8 +43,14 @@ export const FurnitureSelector: React.FC<Props> = ({
   const isAiPick = (p: Product) =>
     suggestedCategories.some(c => getDisplayCategory(p.productName, p.category) === c.toLowerCase());
 
+  const normalizeCat = (cat: string) => {
+    const lower = cat?.toLowerCase() ?? '';
+    if (lower === 'wall decor') return 'decor';
+    return lower;
+  };
+
   const categories = useMemo(
-    () => ['all', ...Array.from(new Set(products.map(p => p.category?.toLowerCase()).filter(Boolean)))],
+    () => ['all', ...Array.from(new Set(products.map(p => normalizeCat(p.category)).filter(Boolean)))],
     [products],
   );
 
@@ -72,7 +78,7 @@ export const FurnitureSelector: React.FC<Props> = ({
   // All products grid: filtered by search + category, AI picks floated to top with badge
   const allProducts = useMemo(() => {
     const base = searchFiltered.filter(p =>
-      activeCategory === 'all' || p.category?.toLowerCase() === activeCategory,
+      activeCategory === 'all' || normalizeCat(p.category) === activeCategory,
     );
     return [...base].sort((a, b) => {
       const aP = isAiPick(a), bP = isAiPick(b);

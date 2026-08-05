@@ -38,7 +38,7 @@ export const About = () => {
       {/* Values */}
       <div className="bg-stone-50 rounded-3xl p-12 mb-20">
          <SectionHeading title="Our Core Values" alignment="center" />
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8 mt-8">
             <div className="text-center p-6 bg-white rounded-2xl shadow-sm">
                <h3 className="text-xl font-bold text-stone-900 mb-3">Quality First</h3>
                <p className="text-stone-600">We never compromise on materials or craftsmanship. Every piece is built to last.</p>
@@ -57,7 +57,7 @@ export const About = () => {
       {/* Team (Optional Mock) */}
       <div>
          <SectionHeading title="Meet The Team" />
-         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {[1, 2, 3, 4].map((i) => (
                <div key={i} className="group">
                   <div className="aspect-[3/4] rounded-2xl overflow-hidden mb-4 bg-stone-200">
